@@ -1,0 +1,7 @@
+beautifulsoup4
+babel
+openpyxl
+ttkthemes
+requests
+pyodata
+easygui
