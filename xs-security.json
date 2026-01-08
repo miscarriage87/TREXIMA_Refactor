@@ -1,0 +1,48 @@
+{
+  "xsappname": "trexima",
+  "tenant-mode": "dedicated",
+  "description": "TREXIMA Security Configuration",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.Admin",
+      "description": "Administrator access to TREXIMA"
+    },
+    {
+      "name": "$XSAPPNAME.User",
+      "description": "User access to TREXIMA"
+    }
+  ],
+  "role-templates": [
+    {
+      "name": "Admin",
+      "description": "Administrator role with full access",
+      "scope-references": [
+        "$XSAPPNAME.Admin",
+        "$XSAPPNAME.User"
+      ]
+    },
+    {
+      "name": "User",
+      "description": "Regular user role with read/write access",
+      "scope-references": [
+        "$XSAPPNAME.User"
+      ]
+    }
+  ],
+  "role-collections": [
+    {
+      "name": "TREXIMA_Administrator",
+      "description": "TREXIMA Administrator Role Collection",
+      "role-template-references": [
+        "$XSAPPNAME.Admin"
+      ]
+    },
+    {
+      "name": "TREXIMA_User",
+      "description": "TREXIMA User Role Collection",
+      "role-template-references": [
+        "$XSAPPNAME.User"
+      ]
+    }
+  ]
+}

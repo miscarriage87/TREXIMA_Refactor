@@ -1,0 +1,76 @@
+# Cloud Foundry Ignore File for TREXIMA
+
+# Git
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environments
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test Output
+test_output/
+test_output_max/
+test_results/
+
+# Large test files (will be loaded from external storage in production)
+Picklist-Values.csv
+
+# Test scripts (not needed in production)
+test_*.py
+
+# Documentation (optional - can include if needed)
+README_REFACTORED.md
+
+# Original monolithic script (reference only)
+SFConfigProcessor.py
+
+# Local configuration and credentials
+LoginCredentialsForAPI.txt
+*.env
+*.env.local
+credentials.json
+secrets.json
+
+# Log files
+*.log
+logs/
+ImportLog_*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+~$*.xlsx
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude development
+.claude/
+
+# Build artifacts
+mta_archives/
+resources/
+.che/

@@ -1,0 +1,83 @@
+_schema-version: '3.3'
+ID: trexima
+version: 1.0.0
+description: "TREXIMA - SuccessFactors Translation Export & Import Management Accelerator"
+parameters:
+  enable-parallel-deployments: true
+
+modules:
+  # Python Web Application Module
+  - name: trexima-web
+    type: python
+    path: .
+    parameters:
+      memory: 512M
+      disk-quota: 1024M
+      buildpack: python_buildpack
+    properties:
+      FLASK_ENV: production
+      FLASK_APP: trexima.web.app:create_app
+    build-parameters:
+      builder: custom
+      commands:
+        - pip install -r requirements_new.txt --target .
+    provides:
+      - name: trexima-web-api
+        properties:
+          url: ${default-url}
+    requires:
+      - name: trexima-destination
+        parameters:
+          service-key:
+            name: trexima-destination-key
+      - name: trexima-xsuaa
+
+resources:
+  # SAP BTP Destination Service (for connecting to SuccessFactors)
+  - name: trexima-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+      config:
+        HTML5Runtime_enabled: false
+        init_data:
+          instance:
+            destinations:
+              - Name: SFSF_API
+                Description: SuccessFactors OData API
+                URL: https://apisalesdemo2.successfactors.eu
+                Type: HTTP
+                ProxyType: Internet
+                Authentication: OAuth2SAMLBearerAssertion
+                audience: https://api2.successfactors.eu
+                authnContextClassRef: urn:oasis:names:tc:SAML:2.0:ac:classes:PreviousSession
+                tokenServiceURL: https://apisalesdemo2.successfactors.eu/oauth/token
+                HTML5.DynamicDestination: true
+            existing_destinations_policy: update
+
+  # SAP BTP XSUAA Service (for authentication)
+  - name: trexima-xsuaa
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+      config:
+        xsappname: trexima-${space}
+        tenant-mode: dedicated
+        scopes:
+          - name: "$XSAPPNAME.Admin"
+            description: "Administrator"
+          - name: "$XSAPPNAME.User"
+            description: "User"
+        role-templates:
+          - name: Admin
+            description: "Administrator Role"
+            scope-references:
+              - "$XSAPPNAME.Admin"
+              - "$XSAPPNAME.User"
+          - name: User
+            description: "User Role"
+            scope-references:
+              - "$XSAPPNAME.User"

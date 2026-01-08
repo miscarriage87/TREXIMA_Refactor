@@ -1,0 +1,19 @@
+---
+# SAP BTP Cloud Foundry Manifest for TREXIMA
+applications:
+  - name: trexima-web
+    memory: 512M
+    instances: 1
+    buildpacks:
+      - python_buildpack
+    command: python run_web.py
+    random-route: false
+    routes:
+      - route: trexima-web-${space}.cfapps.${region}.hana.ondemand.com
+    env:
+      FLASK_ENV: production
+      FLASK_APP: trexima.web.app:create_app
+    services:
+      # Add service bindings here if needed
+      # - trexima-xsuaa
+      # - trexima-destination
