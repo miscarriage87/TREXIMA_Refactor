@@ -27,8 +27,8 @@ def main():
     )
     parser.add_argument(
         '--host',
-        default=os.environ.get('HOST', '127.0.0.1'),
-        help='Host to bind to (default: 127.0.0.1 or $HOST)'
+        default=os.environ.get('HOST', '0.0.0.0'),
+        help='Host to bind to (default: 0.0.0.0 or $HOST)'
     )
     parser.add_argument(
         '--port',
