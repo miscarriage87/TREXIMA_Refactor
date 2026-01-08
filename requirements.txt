@@ -1,7 +1,28 @@
-beautifulsoup4
-babel
-openpyxl
-ttkthemes
-requests
-pyodata
-easygui
+# TREXIMA Production Dependencies
+# For SAP BTP Cloud Foundry Deployment
+
+# XML Processing
+beautifulsoup4>=4.9.0
+lxml>=4.6.0
+
+# Localization
+babel>=2.9.0
+
+# Excel Processing
+openpyxl>=3.0.0
+
+# GUI (for local execution)
+ttkthemes>=3.2.0
+
+# HTTP Requests
+requests>=2.25.0
+
+# SAP OData Client
+pyodata>=1.7.0
+
+# Simple Dialogs
+easygui>=0.98.0
+
+# Web Framework
+flask>=2.0.0
+flask-cors>=3.0.0
