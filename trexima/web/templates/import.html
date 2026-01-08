@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}{{ app_name }} - Import Translations{% endblock %}
+
+{% block content %}
+<h1>Import Translations</h1>
+<p class="page-description">Import updated translations from Excel back to SF configuration files.</p>
+
+<div class="workflow-steps">
+    <!-- Step 1: Upload Workbook -->
+    <div class="step" id="step1">
+        <div class="step-header">
+            <span class="step-number">1</span>
+            <h3>Upload Translations Workbook</h3>
+            <span class="step-status" id="step1-status"></span>
+        </div>
+        <div class="step-content">
+            <div class="file-upload">
+                <input type="file" id="workbook-file" accept=".xlsx">
+                <label for="workbook-file" class="file-label">
+                    <span class="file-icon">📊</span>
+                    <span>Choose Excel Workbook</span>
+                </label>
+            </div>
+            <div id="workbook-info" class="file-info"></div>
+        </div>
+    </div>
+
+    <!-- Step 2: Upload XML Files -->
+    <div class="step" id="step2">
+        <div class="step-header">
+            <span class="step-number">2</span>
+            <h3>Upload Latest Data Model Files</h3>
+            <span class="step-status" id="step2-status"></span>
+        </div>
+        <div class="step-content">
+            <p class="step-info">Upload the latest versions of the XML files that will receive the translations.</p>
+            <div class="file-upload">
+                <input type="file" id="xml-files" accept=".xml" multiple>
+                <label for="xml-files" class="file-label">
+                    <span class="file-icon">📁</span>
+                    <span>Choose XML Files</span>
+                </label>
+            </div>
+            <div id="uploaded-files" class="uploaded-files"></div>
+            <button id="upload-xml-btn" class="btn btn-primary">Upload XML Files</button>
+        </div>
+    </div>
+
+    <!-- Step 3: Select Sheets -->
+    <div class="step" id="step3">
+        <div class="step-header">
+            <span class="step-number">3</span>
+            <h3>Select Worksheets to Process</h3>
+            <span class="step-status" id="step3-status"></span>
+        </div>
+        <div class="step-content">
+            <div id="sheet-list" class="checkbox-list">
+                <!-- Populated dynamically -->
+                <p class="placeholder">Upload a workbook first to see available sheets.</p>
+            </div>
+            <button id="import-btn" class="btn btn-primary btn-large">Execute Import</button>
+        </div>
+    </div>
+</div>
+
+<!-- Results -->
+<div id="import-result" class="result-panel hidden">
+    <h3>Import Complete!</h3>
+    <div id="result-details">
+        <p><strong>Changes Made:</strong> <span id="changes-count">0</span></p>
+        <p><strong>Files Generated:</strong></p>
+        <ul id="generated-files"></ul>
+    </div>
+    <p class="info-text">The generated "ReadyToImport" XML files can be imported to SuccessFactors.</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let workbookFile = null;
+let sheetNames = [];
+
+document.getElementById('workbook-file').addEventListener('change', handleWorkbookSelect);
+document.getElementById('upload-xml-btn').addEventListener('click', uploadXMLFiles);
+document.getElementById('import-btn').addEventListener('click', executeImport);
+
+function handleWorkbookSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    workbookFile = file;
+    document.getElementById('workbook-info').innerHTML = `
+        <div class="file-item">Selected: ${file.name} (${formatFileSize(file.size)})</div>
+    `;
+    document.getElementById('step1-status').textContent = '✓';
+    document.getElementById('step1-status').className = 'step-status complete';
+
+    // For now, we'll show default sheets - in a full implementation,
+    // we'd send the file to the server to get the actual sheet names
+    updateSheetList(['DataModel (en-US)', 'DataModel (de-DE)', 'Performance_Review_Templates', 'Picklists']);
+}
+
+function updateSheetList(sheets) {
+    sheetNames = sheets;
+    const sheetList = document.getElementById('sheet-list');
+
+    if (sheets.length === 0) {
+        sheetList.innerHTML = '<p class="placeholder">No sheets found in workbook.</p>';
+        return;
+    }
+
+    sheetList.innerHTML = '';
+    sheets.forEach(sheet => {
+        sheetList.innerHTML += `
+            <label><input type="checkbox" class="sheet-checkbox" value="${sheet}" checked> ${sheet}</label>
+        `;
+    });
+}
+
+function uploadXMLFiles() {
+    const files = document.getElementById('xml-files').files;
+    if (files.length === 0) {
+        alert('Please select XML files to upload.');
+        return;
+    }
+
+    const formData = new FormData();
+    for (let file of files) {
+        formData.append('files', file);
+    }
+
+    showProgress('Uploading XML files...');
+
+    fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideProgress();
+        const uploadedDiv = document.getElementById('uploaded-files');
+        uploadedDiv.innerHTML = '';
+
+        if (data.uploaded && data.uploaded.length > 0) {
+            data.uploaded.forEach(file => {
+                uploadedDiv.innerHTML += `<div class="file-item">✓ ${file.filename} (${file.type})</div>`;
+            });
+            document.getElementById('step2-status').textContent = '✓';
+            document.getElementById('step2-status').className = 'step-status complete';
+        }
+
+        if (data.errors && data.errors.length > 0) {
+            data.errors.forEach(err => {
+                uploadedDiv.innerHTML += `<div class="file-item error">✗ ${err}</div>`;
+            });
+        }
+    })
+    .catch(err => {
+        hideProgress();
+        alert('Upload failed: ' + err);
+    });
+}
+
+function executeImport() {
+    if (!workbookFile) {
+        alert('Please select a translations workbook first.');
+        return;
+    }
+
+    const selectedSheets = Array.from(document.querySelectorAll('.sheet-checkbox:checked'))
+        .map(cb => cb.value);
+
+    if (selectedSheets.length === 0) {
+        alert('Please select at least one worksheet to process.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('workbook', workbookFile);
+    formData.append('sheets', JSON.stringify(selectedSheets));
+
+    showProgress('Importing translations...');
+
+    fetch('/api/import', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideProgress();
+        if (data.success) {
+            document.getElementById('step3-status').textContent = '✓';
+            document.getElementById('step3-status').className = 'step-status complete';
+            document.getElementById('import-result').classList.remove('hidden');
+            document.getElementById('changes-count').textContent = data.changes_made;
+
+            const filesList = document.getElementById('generated-files');
+            filesList.innerHTML = '';
+            data.files_generated.forEach(file => {
+                filesList.innerHTML += `<li><a href="/api/download/${file}">${file}</a></li>`;
+            });
+            if (data.log_file) {
+                filesList.innerHTML += `<li><a href="/api/download/${data.log_file}">Import Log</a></li>`;
+            }
+        } else {
+            alert('Import failed: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(err => {
+        hideProgress();
+        alert('Import failed: ' + err);
+    });
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+</script>
+{% endblock %}

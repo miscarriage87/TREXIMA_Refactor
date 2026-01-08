@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}{{ app_name }} - Export Translations{% endblock %}
+
+{% block content %}
+<h1>Export Translations</h1>
+<p class="page-description">Export translations from SF data models to an Excel workbook.</p>
+
+<div class="workflow-steps">
+    <!-- Step 1: Upload Files -->
+    <div class="step" id="step1">
+        <div class="step-header">
+            <span class="step-number">1</span>
+            <h3>Upload XML Configuration Files</h3>
+            <span class="step-status" id="step1-status"></span>
+        </div>
+        <div class="step-content">
+            <div class="file-upload">
+                <input type="file" id="xml-files" accept=".xml" multiple>
+                <label for="xml-files" class="file-label">
+                    <span class="file-icon">📁</span>
+                    <span>Choose XML Files or Drag & Drop</span>
+                </label>
+            </div>
+            <div id="uploaded-files" class="uploaded-files"></div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="include-standard" checked>
+                    Include Standard SAP translations for missing labels
+                </label>
+            </div>
+            <button id="upload-btn" class="btn btn-primary">Upload Files</button>
+        </div>
+    </div>
+
+    <!-- Step 2: Configure OData (Optional) -->
+    <div class="step" id="step2">
+        <div class="step-header">
+            <span class="step-number">2</span>
+            <h3>Connect to OData API (Optional)</h3>
+            <span class="step-status" id="step2-status"></span>
+        </div>
+        <div class="step-content">
+            <p class="step-info">Required for Picklists, MDF Objects, and Foundation Objects.</p>
+            <div class="form-group">
+                <label for="service-url">OData Service URL:</label>
+                <input type="text" id="service-url" placeholder="https://api.successfactors.eu/odata/v2">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="company-id">Company ID:</label>
+                    <input type="text" id="company-id" placeholder="COMPANYID">
+                </div>
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" placeholder="API User">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password">
+            </div>
+            <button id="connect-btn" class="btn btn-primary">Connect</button>
+            <button id="skip-odata-btn" class="btn btn-secondary">Skip OData</button>
+        </div>
+    </div>
+
+    <!-- Step 3: Export Options -->
+    <div class="step" id="step3">
+        <div class="step-header">
+            <span class="step-number">3</span>
+            <h3>Configure Export Options</h3>
+            <span class="step-status" id="step3-status"></span>
+        </div>
+        <div class="step-content">
+            <div class="form-group">
+                <label>Select Locales for Export:</label>
+                <div id="locale-list" class="checkbox-list">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="default-lang">Default Language:</label>
+                <select id="default-lang">
+                    <option value="en_US">English (US)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Export Options:</label>
+                <div class="checkbox-list">
+                    <label><input type="checkbox" id="export-picklists" checked> Export Picklists</label>
+                    <label><input type="checkbox" id="export-mdf"> Export MDF Object Definitions</label>
+                    <label><input type="checkbox" id="export-fo" checked> Export Foundation Objects</label>
+                    <label><input type="checkbox" id="remove-html"> Remove HTML Tags</label>
+                </div>
+            </div>
+            <button id="export-btn" class="btn btn-primary btn-large">Execute Export</button>
+        </div>
+    </div>
+</div>
+
+<!-- Results -->
+<div id="export-result" class="result-panel hidden">
+    <h3>Export Complete!</h3>
+    <p id="result-message"></p>
+    <a id="download-link" href="#" class="btn btn-success">Download Excel File</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let odataConnected = false;
+let loadedLocales = ['en_US', 'de_DE', 'fr_FR', 'es_ES'];
+
+document.getElementById('upload-btn').addEventListener('click', uploadFiles);
+document.getElementById('connect-btn').addEventListener('click', connectOData);
+document.getElementById('skip-odata-btn').addEventListener('click', skipOData);
+document.getElementById('export-btn').addEventListener('click', executeExport);
+
+function uploadFiles() {
+    const files = document.getElementById('xml-files').files;
+    if (files.length === 0) {
+        alert('Please select XML files to upload.');
+        return;
+    }
+
+    const formData = new FormData();
+    for (let file of files) {
+        formData.append('files', file);
+    }
+
+    showProgress('Uploading files...');
+
+    fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideProgress();
+        const uploadedDiv = document.getElementById('uploaded-files');
+        uploadedDiv.innerHTML = '';
+
+        if (data.uploaded && data.uploaded.length > 0) {
+            data.uploaded.forEach(file => {
+                uploadedDiv.innerHTML += `<div class="file-item">✓ ${file.filename} (${file.type})</div>`;
+            });
+            document.getElementById('step1-status').textContent = '✓';
+            document.getElementById('step1-status').className = 'step-status complete';
+        }
+
+        if (data.errors && data.errors.length > 0) {
+            data.errors.forEach(err => {
+                uploadedDiv.innerHTML += `<div class="file-item error">✗ ${err}</div>`;
+            });
+        }
+
+        // Load standard if checked
+        if (document.getElementById('include-standard').checked) {
+            loadStandard();
+        }
+    })
+    .catch(err => {
+        hideProgress();
+        alert('Upload failed: ' + err);
+    });
+}
+
+function loadStandard() {
+    fetch('/api/upload/standard', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.loaded && data.loaded.length > 0) {
+                const uploadedDiv = document.getElementById('uploaded-files');
+                data.loaded.forEach(file => {
+                    uploadedDiv.innerHTML += `<div class="file-item standard">✓ ${file.name} (Standard)</div>`;
+                });
+            }
+        });
+}
+
+function connectOData() {
+    const data = {
+        service_url: document.getElementById('service-url').value,
+        company_id: document.getElementById('company-id').value,
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value
+    };
+
+    if (!data.service_url || !data.company_id || !data.username || !data.password) {
+        alert('Please fill in all OData connection fields.');
+        return;
+    }
+
+    showProgress('Connecting to OData service...');
+
+    fetch('/api/odata/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideProgress();
+        if (data.success) {
+            odataConnected = true;
+            document.getElementById('step2-status').textContent = '✓';
+            document.getElementById('step2-status').className = 'step-status complete';
+            loadLocales();
+        } else {
+            alert('Connection failed: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(err => {
+        hideProgress();
+        alert('Connection failed: ' + err);
+    });
+}
+
+function skipOData() {
+    document.getElementById('step2-status').textContent = 'Skipped';
+    document.getElementById('step2-status').className = 'step-status skipped';
+    loadLocales();
+}
+
+function loadLocales() {
+    fetch('/api/odata/locales')
+        .then(response => response.json())
+        .then(data => {
+            loadedLocales = data.locales;
+            const localeList = document.getElementById('locale-list');
+            const defaultSelect = document.getElementById('default-lang');
+            localeList.innerHTML = '';
+            defaultSelect.innerHTML = '';
+
+            data.locales.forEach(locale => {
+                localeList.innerHTML += `
+                    <label><input type="checkbox" class="locale-checkbox" value="${locale}" checked> ${locale}</label>
+                `;
+                defaultSelect.innerHTML += `<option value="${locale}">${locale}</option>`;
+            });
+        });
+}
+
+function executeExport() {
+    const selectedLocales = Array.from(document.querySelectorAll('.locale-checkbox:checked'))
+        .map(cb => cb.value);
+
+    if (selectedLocales.length === 0) {
+        alert('Please select at least one locale.');
+        return;
+    }
+
+    const exportData = {
+        locales: selectedLocales,
+        default_lang: document.getElementById('default-lang').value,
+        export_picklists: document.getElementById('export-picklists').checked,
+        export_mdf: document.getElementById('export-mdf').checked,
+        export_fo: document.getElementById('export-fo').checked,
+        remove_html: document.getElementById('remove-html').checked
+    };
+
+    showProgress('Exporting translations...');
+
+    fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(exportData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideProgress();
+        if (data.success) {
+            document.getElementById('step3-status').textContent = '✓';
+            document.getElementById('step3-status').className = 'step-status complete';
+            document.getElementById('export-result').classList.remove('hidden');
+            document.getElementById('result-message').textContent = `File: ${data.filename}`;
+            document.getElementById('download-link').href = data.download_url;
+        } else {
+            alert('Export failed: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(err => {
+        hideProgress();
+        alert('Export failed: ' + err);
+    });
+}
+
+// Initialize
+loadLocales();
+</script>
+{% endblock %}

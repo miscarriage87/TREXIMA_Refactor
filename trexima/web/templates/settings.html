@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}{{ app_name }} - Settings{% endblock %}
+
+{% block content %}
+<h1>Settings</h1>
+<p class="page-description">Configure application settings and OData connection.</p>
+
+<div class="settings-panel">
+    <h2>OData Connection</h2>
+    <div class="form-group">
+        <label for="service-url">OData Service URL:</label>
+        <input type="text" id="service-url" placeholder="https://api.successfactors.eu/odata/v2">
+    </div>
+    <div class="form-row">
+        <div class="form-group">
+            <label for="company-id">Company ID:</label>
+            <input type="text" id="company-id" placeholder="COMPANYID">
+        </div>
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" placeholder="API User">
+        </div>
+    </div>
+    <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password">
+    </div>
+    <div class="button-group">
+        <button id="connect-btn" class="btn btn-primary">Test Connection</button>
+        <button id="disconnect-btn" class="btn btn-secondary">Disconnect</button>
+    </div>
+    <div id="connection-status" class="status-message"></div>
+</div>
+
+<div class="settings-panel">
+    <h2>Loaded Data Models</h2>
+    <div id="datamodels-list" class="data-list">
+        <p class="placeholder">No data models loaded.</p>
+    </div>
+    <button id="refresh-models-btn" class="btn btn-secondary">Refresh List</button>
+</div>
+
+<div class="settings-panel">
+    <h2>Application</h2>
+    <button id="reset-btn" class="btn btn-danger">Reset Application State</button>
+    <p class="info-text">This will clear all loaded files and reset the application to its initial state.</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('connect-btn').addEventListener('click', testConnection);
+document.getElementById('disconnect-btn').addEventListener('click', disconnect);
+document.getElementById('refresh-models-btn').addEventListener('click', loadDataModels);
+document.getElementById('reset-btn').addEventListener('click', resetApp);
+
+function testConnection() {
+    const data = {
+        service_url: document.getElementById('service-url').value,
+        company_id: document.getElementById('company-id').value,
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value
+    };
+
+    if (!data.service_url || !data.company_id || !data.username || !data.password) {
+        showStatus('Please fill in all fields.', 'error');
+        return;
+    }
+
+    showProgress('Testing connection...');
+
+    fetch('/api/odata/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideProgress();
+        if (data.success) {
+            showStatus('Connection successful!', 'success');
+        } else {
+            showStatus('Connection failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+    })
+    .catch(err => {
+        hideProgress();
+        showStatus('Connection failed: ' + err, 'error');
+    });
+}
+
+function disconnect() {
+    fetch('/api/odata/disconnect', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            showStatus('Disconnected from OData service.', 'info');
+        });
+}
+
+function loadDataModels() {
+    fetch('/api/datamodels')
+        .then(response => response.json())
+        .then(data => {
+            const list = document.getElementById('datamodels-list');
+            if (data.models && data.models.length > 0) {
+                list.innerHTML = '';
+                data.models.forEach(model => {
+                    const badge = model.is_standard ? '<span class="badge">Standard</span>' : '';
+                    list.innerHTML += `
+                        <div class="data-item">
+                            <strong>${model.name}</strong> ${badge}
+                            <span class="data-meta">${model.type} - ${model.languages} languages</span>
+                        </div>
+                    `;
+                });
+            } else {
+                list.innerHTML = '<p class="placeholder">No data models loaded.</p>';
+            }
+        });
+}
+
+function resetApp() {
+    if (!confirm('Are you sure you want to reset the application? This will clear all loaded files.')) {
+        return;
+    }
+
+    fetch('/api/reset', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            showStatus('Application state reset.', 'success');
+            loadDataModels();
+        });
+}
+
+function showStatus(message, type) {
+    const statusDiv = document.getElementById('connection-status');
+    statusDiv.textContent = message;
+    statusDiv.className = 'status-message ' + type;
+}
+
+// Initialize
+loadDataModels();
+</script>
+{% endblock %}

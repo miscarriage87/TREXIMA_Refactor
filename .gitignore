@@ -1,0 +1,134 @@
+# TREXIMA - Git Ignore File
+
+# Sensitive Information - NEVER commit these!
+LoginCredentialsForAPI.txt
+**/credentials.json
+**/secrets.json
+**/.env
+**/.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test Output Directories
+test_output/
+test_output_max/
+test_results/
+
+# Excel files (except sample templates if needed)
+*.xlsx
+!template*.xlsx
+
+# Large XML files - consider using Git LFS if needed
+# Uncomment if you don't want to track large data model files
+# EC-*.xml
+# *.xml
+
+# CSV files (large data files)
+Picklist-Values.csv
+
+# Log files
+*.log
+logs/
+ImportLog_*.log
+
+# Temporary files
+*.tmp
+*.temp
+~$*.xlsx
+~$*.docx
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*_backup.*
+*_old.*
+
+# Documentation build
+_build/
+docs/_build/
+
+# PyCharm
+.idea/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Flask
+instance/
+.webassets-cache
+
+# Translations binary files
+*.mo
+*.pot
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# SAP BTP specific (will add more in BTP phase)
+mta_archives/
+resources/
+.che/
+.cds_gen/
+gen/
+node_modules/

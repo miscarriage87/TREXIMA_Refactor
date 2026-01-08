@@ -1,0 +1,35 @@
+# TREXIMA Dependencies
+# Install with: pip install -r requirements_new.txt
+
+# XML Processing
+beautifulsoup4>=4.9.0
+lxml>=4.6.0
+
+# Localization
+babel>=2.9.0
+
+# Excel Processing
+openpyxl>=3.0.0
+
+# GUI (Tkinter is built-in, but themes need ttkthemes)
+ttkthemes>=3.2.0
+
+# HTTP Requests
+requests>=2.25.0
+
+# SAP OData Client
+pyodata>=1.7.0
+
+# Simple Dialogs
+easygui>=0.98.0
+
+# Web Framework (for Phase 4)
+flask>=2.0.0
+flask-cors>=3.0.0
+
+# Development Dependencies
+pytest>=6.0.0
+pytest-cov>=2.0.0
+black>=21.0
+flake8>=3.9.0
+mypy>=0.900

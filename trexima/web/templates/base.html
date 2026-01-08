@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ app_name }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="{{ url_for('main.index') }}">{{ app_name }}</a>
+            <span class="version">v{{ version }}</span>
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('main.index') }}" class="{% if request.endpoint == 'main.index' %}active{% endif %}">Home</a>
+            <a href="{{ url_for('main.export_page') }}" class="{% if request.endpoint == 'main.export_page' %}active{% endif %}">Export</a>
+            <a href="{{ url_for('main.import_page') }}" class="{% if request.endpoint == 'main.import_page' %}active{% endif %}">Import</a>
+            <a href="{{ url_for('main.settings_page') }}" class="{% if request.endpoint == 'main.settings_page' %}active{% endif %}">Settings</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <div id="progress-overlay" class="progress-overlay hidden">
+        <div class="progress-content">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <p id="progress-message">Processing...</p>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>{{ app_name }} - SuccessFactors Translation Export & Import Management Accelerator</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

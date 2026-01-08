@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}{{ app_name }} - Home{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>{{ app_name }}</h1>
+    <p class="subtitle">SuccessFactors Translation Export & Import Management Accelerator</p>
+</div>
+
+<div class="status-panel" id="status-panel">
+    <h3>System Status</h3>
+    <div class="status-grid">
+        <div class="status-item">
+            <span class="status-label">Files Loaded:</span>
+            <span class="status-value" id="files-loaded">0</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">OData Connected:</span>
+            <span class="status-value" id="odata-status">No</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">PM/GM Templates:</span>
+            <span class="status-value" id="pmgm-status">No</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">SDM Included:</span>
+            <span class="status-value" id="sdm-status">No</span>
+        </div>
+    </div>
+</div>
+
+<div class="card-grid">
+    <div class="card">
+        <div class="card-icon">📤</div>
+        <h2>Export Translations</h2>
+        <p>Export translations from SF data models to Excel workbooks for editing and review.</p>
+        <a href="{{ url_for('main.export_page') }}" class="btn btn-primary">Start Export</a>
+    </div>
+
+    <div class="card">
+        <div class="card-icon">📥</div>
+        <h2>Import Translations</h2>
+        <p>Import updated translations from Excel back to SF configuration files.</p>
+        <a href="{{ url_for('main.import_page') }}" class="btn btn-primary">Start Import</a>
+    </div>
+
+    <div class="card">
+        <div class="card-icon">⚙️</div>
+        <h2>Settings</h2>
+        <p>Configure OData connection, default languages, and other options.</p>
+        <a href="{{ url_for('main.settings_page') }}" class="btn btn-secondary">Configure</a>
+    </div>
+</div>
+
+<div class="features">
+    <h2>Features</h2>
+    <ul class="feature-list">
+        <li>Export translations from Succession Data Model, Corporate Data Model, and CSF</li>
+        <li>Support for PM/GM Form Templates with label key management</li>
+        <li>Picklist translation export from CSV or OData API</li>
+        <li>MDF Object and Foundation Object translation support</li>
+        <li>Multi-language Excel workbook generation</li>
+        <li>Automatic "Ready to Import" XML file generation</li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    updateStatus();
+    setInterval(updateStatus, 5000);
+});
+
+function updateStatus() {
+    fetch('/api/status')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('files-loaded').textContent = data.files_loaded;
+            document.getElementById('odata-status').textContent = data.odata_connected ? 'Yes' : 'No';
+            document.getElementById('pmgm-status').textContent = data.is_pmgm_included ? 'Yes' : 'No';
+            document.getElementById('sdm-status').textContent = data.is_sdm_included ? 'Yes' : 'No';
+        })
+        .catch(err => console.error('Status update failed:', err));
+}
+</script>
+{% endblock %}
