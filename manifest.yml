@@ -22,6 +22,6 @@ applications:
     PERMANENT_SESSION_LIFETIME: 3600
     CORS_ORIGINS: "*"
   services:
-    - trexima-postgres
+    - trexima-sql
     - trexima-objectstore
-    - trexima-xsuaa
+    - trexima-auth
