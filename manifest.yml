@@ -7,13 +7,10 @@ applications:
   instances: 1
   buildpacks:
     - python_buildpack
-    - nodejs_buildpack
   command: gunicorn --bind 0.0.0.0:$PORT --worker-class eventlet --workers 1 --timeout 300 'trexima.web.app:create_app()'
   health-check-type: http
   health-check-http-endpoint: /api/health
   timeout: 180
-  routes:
-    - route: trexima-v4.cfapps.eu10-004.hana.ondemand.com
   env:
     FLASK_ENV: production
     PYTHONUNBUFFERED: true
@@ -25,6 +22,6 @@ applications:
     PERMANENT_SESSION_LIFETIME: 3600
     CORS_ORIGINS: "*"
   services:
-    - trexima-sql
+    - trexima-postgres
     - trexima-objectstore
-    - trexima-auth
+    - trexima-xsuaa

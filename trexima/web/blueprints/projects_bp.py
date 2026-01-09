@@ -940,7 +940,8 @@ def get_sf_picklists(project_id):
                     pl_dict['option_count'] = len(options)
 
                 picklist_data.append(pl_dict)
-            except Exception:
+            except Exception as e:
+                logger.debug(f"Skipping picklist due to processing error: {e}")
                 continue
 
         client.disconnect()

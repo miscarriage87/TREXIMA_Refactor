@@ -5,7 +5,7 @@
  */
 
 import { create } from 'zustand';
-import type { Project, ProjectConfig, ProjectFile, GeneratedFile, ProgressUpdate, FileType } from '../types';
+import type { Project, ProjectConfig, ProjectFile, GeneratedFile, ProgressUpdate, FileType, BackendProject, BackendFileDict } from '../types';
 import projectsApi from '../api/projects';
 import { logInfo, logError } from '../components/DebugConsole';
 
@@ -14,12 +14,12 @@ import { logInfo, logError } from '../components/DebugConsole';
  * Backend returns: { sdm: {id, name, size, uploaded_at} | null, cdm: ..., ... }
  * Frontend expects: ProjectFile[] with {id, file_type, original_filename, file_size, uploaded_at}
  */
-function convertFilesToArray(filesDict: Record<string, { id: string; name: string; size: number; uploaded_at: string } | null> | undefined): ProjectFile[] {
+function convertFilesToArray(filesDict: Record<string, BackendFileDict | null> | ProjectFile[] | undefined): ProjectFile[] {
   if (!filesDict || typeof filesDict !== 'object') {
     return [];
   }
 
-  // If it's already an array, return it
+  // If it's already an array, return it as-is
   if (Array.isArray(filesDict)) {
     return filesDict;
   }
@@ -108,7 +108,7 @@ interface ProjectState {
   clearError: () => void;
 }
 
-export const useProjectStore = create<ProjectState>((set, _get) => ({
+export const useProjectStore = create<ProjectState>((set) => ({
   projects: [],
   currentProject: null,
   files: [],
@@ -126,7 +126,7 @@ export const useProjectStore = create<ProjectState>((set, _get) => ({
     try {
       const projects = await projectsApi.list();
       set({ projects });
-    } catch (error) {
+    } catch {
       set({ error: 'Failed to load projects' });
     } finally {
       set({ isLoading: false });
@@ -136,11 +136,18 @@ export const useProjectStore = create<ProjectState>((set, _get) => ({
   fetchProject: async (projectId: string) => {
     set({ isLoading: true, error: null });
     try {
-      const project = await projectsApi.get(projectId);
+      // API returns BackendProject format with files as dictionary
+      const backendProject = await projectsApi.get(projectId) as BackendProject;
       // Convert backend files dictionary to array format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const filesArray = convertFilesToArray((project as any).files);
-      logInfo('[Store] Converted files from backend', { original: (project as any).files, converted: filesArray });
+      const filesArray = convertFilesToArray(backendProject.files);
+      logInfo('[Store] Converted files from backend', { original: backendProject.files, converted: filesArray });
+
+      // Create frontend Project with files as array
+      const project: Project = {
+        ...backendProject,
+        files: filesArray,
+      };
+
       set({
         currentProject: project,
         files: filesArray,
@@ -203,9 +210,9 @@ export const useProjectStore = create<ProjectState>((set, _get) => ({
   },
 
   setCurrentProject: (project) => {
-    // Convert backend files dictionary to array format
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filesArray = project ? convertFilesToArray((project as any).files) : [];
+    // Convert backend files dictionary to array format if needed
+    // Project may come from backend (dictionary) or already be frontend format (array)
+    const filesArray = project ? convertFilesToArray(project.files as Record<string, BackendFileDict | null> | ProjectFile[] | undefined) : [];
     set({
       currentProject: project,
       files: filesArray,

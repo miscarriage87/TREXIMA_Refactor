@@ -55,7 +55,7 @@ export default function FileUploadZone({ projectId }: FileUploadZoneProps) {
     try {
       await deleteFile(projectId, fileId);
       clearError();
-    } catch (err) {
+    } catch {
       // Error handled by store
     }
   };

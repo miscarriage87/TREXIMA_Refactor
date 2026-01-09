@@ -358,7 +358,7 @@ class TranslationExtractor:
             try:
                 locale_name = babel.Locale.parse(lang).english_name
                 headers.append(f"Label in {locale_name}")
-            except:
+            except (ValueError, AttributeError, babel.UnknownLocaleError):
                 headers.append(f"Label in {lang}")
 
         ws.append(headers)
@@ -398,7 +398,7 @@ class TranslationExtractor:
                 for obj in objects:
                     try:
                         key = obj.__getattr__(key_prop)
-                    except:
+                    except (AttributeError, KeyError):
                         continue
 
                     if is_legacy_fo:
@@ -411,7 +411,7 @@ class TranslationExtractor:
                             row = [obj_name, key, field]
                             try:
                                 default_val = obj.__getattr__(f"{field}_defaultValue")
-                            except:
+                            except (AttributeError, KeyError):
                                 default_val = None
 
                             if default_val:
@@ -447,13 +447,13 @@ class TranslationExtractor:
                 for lang in locales:
                     try:
                         row.append(trans_nav.__getattr__(f"value_{lang}"))
-                    except:
+                    except (AttributeError, KeyError):
                         row.append("")
             else:
                 row.append(obj.__getattr__(field))
                 for _ in locales:
                     row.append("")
-        except:
+        except (AttributeError, KeyError, TypeError):
             row.append("")
             for _ in locales:
                 row.append("")
@@ -487,7 +487,7 @@ class TranslationExtractor:
                     try:
                         locale_name = babel.Locale.parse(parse_lang, sep="-").english_name
                         headers.append(f"Label in {locale_name} ({lang})")
-                    except:
+                    except (ValueError, AttributeError, babel.UnknownLocaleError):
                         headers.append(f"Label in {lang}")
                 else:
                     headers.append("Label SF Debug (en-DEBUG)")

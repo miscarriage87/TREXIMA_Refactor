@@ -38,6 +38,8 @@ env/
 ENV/
 env.bak/
 venv.bak/
+trexima-venv/
+.venv/
 
 # IDEs
 .vscode/

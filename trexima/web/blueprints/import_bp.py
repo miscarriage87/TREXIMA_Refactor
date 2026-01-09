@@ -401,8 +401,8 @@ def _execute_import(
                     import shutil
                     try:
                         shutil.rmtree(temp_dir)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"Could not cleanup temp directory {temp_dir}: {e}")
 
 
 # =============================================================================
@@ -532,5 +532,5 @@ def validate_workbook(project_id):
         import shutil
         try:
             shutil.rmtree(temp_dir)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Could not cleanup temp directory: {e}")

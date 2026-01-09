@@ -97,14 +97,29 @@ npm run test:coverage
 npm run lint
 ```
 
+### Database Migrations
+```bash
+# Initialize migrations (first time only)
+flask db init
+
+# Create a new migration
+flask db migrate -m "Description of changes"
+
+# Apply migrations
+flask db upgrade
+```
+
 ### Testing
 ```bash
+# Unit tests
+pytest tests/
+
 # End-to-end tests (requires SF credentials)
-python test_e2e.py        # Small test: 2 data models, 3 languages
-python test_max.py        # MAX test: 4 data models, 17 languages
+python tests/test_e2e.py        # Small test: 2 data models, 3 languages
+python tests/test_max.py        # MAX test: 4 data models, 17 languages
 
 # API connectivity test
-python test_api_small.py
+python tests/test_api_small.py
 ```
 
 ### Deployment (SAP BTP Cloud Foundry)
@@ -152,8 +167,11 @@ The application processes four types of SF data models:
 ## Environment Configuration
 
 Copy `.env.template` to `.env` for local development. Key variables:
+- `SECRET_KEY`: Required in production, auto-generated if not set
 - `DATABASE_URL`: PostgreSQL connection string (defaults to SQLite)
 - `AUTH_ENABLED`: Set to `false` for local development without XSUAA
-- `STORAGE_TYPE`: `filesystem` for local, auto-configured for BTP
+- `CORS_ORIGINS`: Comma-separated list of allowed origins (defaults to localhost)
+- `S3_ACCESS_KEY`, `S3_SECRET_KEY`: Required for S3 storage (optional for development)
+- `WORKBOOK_PASSWORD`: Optional password for Excel workbook protection
 
-Production environment is configured via Cloud Foundry manifest (`manifest.yml`) and bound services.
+Production environment is configured via Cloud Foundry manifest (`manifest.yml`) and bound BTP services (PostgreSQL, Object Store, XSUAA).

@@ -18,8 +18,7 @@ import {
   ArrowUpCircle,
 } from 'lucide-react';
 import { useProjectStore } from '../store/projectStore';
-// WebSocket disabled due to Cloud Foundry compatibility issues
-// import wsService from '../api/websocket';
+import wsService from '../api/websocket';
 import FileUploadZone from '../components/project/FileUploadZone';
 import ConnectionConfig from '../components/project/ConnectionConfig';
 import ProgressOverlay from '../components/project/ProgressOverlay';
@@ -40,6 +39,7 @@ export default function ProjectPage() {
     error,
     activeOperation,
     clearProgress,
+    updateProgress,
   } = useProjectStore();
 
   const [activeSection, setActiveSection] = useState<Section>('files');
@@ -52,27 +52,41 @@ export default function ProjectPage() {
     }
   }, [projectId, fetchProject, fetchDownloads]);
 
-  // WebSocket subscription - DISABLED due to Cloud Foundry compatibility issues
-  // Real-time progress updates are not critical - the app works via polling/refresh
-  // useEffect(() => {
-  //   if (!projectId) return;
-  //   wsService.connect().then(() => {
-  //     wsService.subscribeToProject(projectId);
-  //   });
-  //   const unsubProgress = wsService.onProgress(projectId, (progress) => {
-  //     updateProgress(progress);
-  //   });
-  //   const unsubComplete = wsService.onComplete(projectId, (result) => {
-  //     console.log('Operation complete:', result);
-  //     clearProgress();
-  //     fetchProject(projectId);
-  //   });
-  //   return () => {
-  //     unsubProgress();
-  //     unsubComplete();
-  //     wsService.unsubscribeFromProject(projectId);
-  //   };
-  // }, [projectId, updateProgress, clearProgress, fetchProject]);
+  // WebSocket subscription for real-time progress updates
+  useEffect(() => {
+    if (!projectId) return;
+
+    // Connect and subscribe to project updates
+    wsService.connect().then(() => {
+      wsService.subscribeToProject(projectId);
+    }).catch((err) => {
+      console.warn('WebSocket connection failed, progress updates may be delayed:', err);
+    });
+
+    // Register callbacks for progress updates
+    const unsubProgress = wsService.onProgress(projectId, (progress) => {
+      updateProgress(progress);
+    });
+
+    const unsubComplete = wsService.onComplete(projectId, () => {
+      clearProgress();
+      fetchProject(projectId);
+      fetchDownloads(projectId);
+    });
+
+    const unsubError = wsService.onError(projectId, (error) => {
+      console.error('Operation error:', error);
+      clearProgress();
+    });
+
+    // Cleanup on unmount
+    return () => {
+      unsubProgress();
+      unsubComplete();
+      unsubError();
+      wsService.unsubscribeFromProject(projectId);
+    };
+  }, [projectId, updateProgress, clearProgress, fetchProject, fetchDownloads]);
 
   if (isLoading || !currentProject) {
     return (

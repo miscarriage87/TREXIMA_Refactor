@@ -42,6 +42,21 @@ export interface Project {
   files?: ProjectFile[];
 }
 
+/**
+ * Backend API returns files as a dictionary format.
+ * This type represents the raw API response before conversion.
+ */
+export interface BackendFileDict {
+  id: string;
+  name: string;
+  size: number;
+  uploaded_at: string;
+}
+
+export interface BackendProject extends Omit<Project, 'files'> {
+  files?: Record<string, BackendFileDict | null>;
+}
+
 export interface ProjectConfig {
   locales: string[];
   sf_connection?: SFConnection;

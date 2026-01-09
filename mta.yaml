@@ -20,7 +20,7 @@ modules:
     build-parameters:
       builder: custom
       commands:
-        - pip install -r requirements_new.txt --target .
+        - pip install -r requirements.txt --target .
     provides:
       - name: trexima-web-api
         properties:

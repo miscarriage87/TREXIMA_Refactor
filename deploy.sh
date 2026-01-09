@@ -42,9 +42,9 @@ echo -e "${GREEN}✓ Frontend built${NC}"
 echo ""
 
 echo -e "${BLUE}[4/8] Preparing static assets...${NC}"
-rm -rf trexima/web/static/dist
-mkdir -p trexima/web/static/dist
-cp -r trexima-frontend/dist/* trexima/web/static/dist/
+rm -rf trexima/web/static/app
+mkdir -p trexima/web/static/app
+cp -r trexima-frontend/dist/* trexima/web/static/app/
 echo -e "${GREEN}✓ Static assets prepared${NC}"
 echo ""
 
@@ -66,8 +66,13 @@ echo -e "${GREEN}✓ Application pushed${NC}"
 echo ""
 
 echo -e "${BLUE}[7/8] Running database migrations...${NC}"
-cf run-task trexima-v4 "python -c 'from trexima.web.app import create_app; from trexima.web.models import db; app = create_app(); app.app_context().push(); db.create_all()'" --name db-migration
-echo -e "${GREEN}✓ Migration started${NC}"
+# Check if migrations directory exists
+if [ -d "migrations" ]; then
+    cf run-task trexima-v4 "flask db upgrade" --name db-migration
+    echo -e "${GREEN}✓ Database migration started${NC}"
+else
+    echo -e "${YELLOW}⚠ No migrations directory found - database will be initialized on first request${NC}"
+fi
 echo ""
 
 echo -e "${BLUE}[8/8] Verifying deployment...${NC}"

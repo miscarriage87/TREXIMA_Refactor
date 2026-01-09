@@ -99,7 +99,7 @@ export default function ExportSummary({ projectId }: ExportSummaryProps) {
     try {
       await startExport(projectId, currentProject?.config);
       // Polling will handle the rest
-    } catch (err) {
+    } catch {
       setIsExporting(false);
       setExportProgress({ active: false });
     }

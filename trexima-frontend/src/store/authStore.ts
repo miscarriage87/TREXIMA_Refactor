@@ -55,7 +55,7 @@ export const useAuthStore = create<AuthState>()(
           if (result.redirect_url) {
             window.location.href = result.redirect_url;
           }
-        } catch (error) {
+        } catch {
           set({ error: 'Logout failed' });
         } finally {
           set({ isLoading: false });
@@ -71,7 +71,7 @@ export const useAuthStore = create<AuthState>()(
             user: result.user || null,
           });
           return result.authenticated;
-        } catch (error) {
+        } catch {
           set({ isAuthenticated: false, user: null });
           return false;
         } finally {
@@ -84,7 +84,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           const user = await authApi.getCurrentUser();
           set({ user, isAuthenticated: true });
-        } catch (error) {
+        } catch {
           set({ error: 'Failed to fetch user' });
         } finally {
           set({ isLoading: false });

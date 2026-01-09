@@ -452,7 +452,8 @@ class OperationCancelled(Exception):
 def _cleanup_client_subscriptions(sid: str):
     """Clean up subscriptions for disconnected client."""
     # SocketIO handles room cleanup automatically
-    pass
+    # Log for debugging purposes
+    logger.debug(f"Cleaning up subscriptions for disconnected client: {sid}")
 
 
 def get_active_operations() -> Dict[str, Dict[str, Any]]:

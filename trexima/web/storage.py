@@ -59,14 +59,24 @@ class ObjectStorageService:
 
         if not objectstore_creds:
             # Fallback to environment variables for local development
+            # Note: Credentials must be provided via environment - no defaults
+            access_key = os.environ.get('S3_ACCESS_KEY')
+            secret_key = os.environ.get('S3_SECRET_KEY')
+
+            if not access_key or not secret_key:
+                logger.warning("S3 credentials not configured - storage operations will be disabled")
+                logger.info("Set S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET, S3_ENDPOINT environment variables")
+                self._initialized = False
+                return
+
             objectstore_creds = {
                 'bucket': os.environ.get('S3_BUCKET', 'trexima-storage'),
                 'host': os.environ.get('S3_ENDPOINT', 'http://localhost:9000'),
-                'access_key_id': os.environ.get('S3_ACCESS_KEY', 'minioadmin'),
-                'secret_access_key': os.environ.get('S3_SECRET_KEY', 'minioadmin'),
+                'access_key_id': access_key,
+                'secret_access_key': secret_key,
                 'region': os.environ.get('S3_REGION', 'us-east-1')
             }
-            logger.info("Using fallback/local S3 configuration")
+            logger.info("Using S3 configuration from environment variables")
 
         self.bucket = objectstore_creds.get('bucket')
 

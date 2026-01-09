@@ -54,10 +54,24 @@ def create_app(config=None, testing=False):
     # CONFIGURATION
     # ==========================================================================
 
+    # Determine if we're in production
+    is_production = os.environ.get('FLASK_ENV') == 'production'
+
+    # Get SECRET_KEY - require in production, use dev default only in development
+    secret_key = os.environ.get('SECRET_KEY')
+    if not secret_key:
+        if is_production:
+            # Generate a random key in production if not set (sessions won't persist across restarts)
+            import secrets
+            secret_key = secrets.token_hex(32)
+            logger.warning("SECRET_KEY not set in production! Using random key - sessions will not persist across restarts.")
+        else:
+            secret_key = 'trexima-dev-key-for-local-development-only'
+
     # Default configuration
     app.config.update(
         # Security
-        SECRET_KEY=os.environ.get('SECRET_KEY', 'trexima-dev-key-change-in-production'),
+        SECRET_KEY=secret_key,
 
         # File uploads
         MAX_CONTENT_LENGTH=100 * 1024 * 1024,  # 100MB max file size
@@ -124,18 +138,34 @@ def create_app(config=None, testing=False):
     # INITIALIZE EXTENSIONS
     # ==========================================================================
 
-    # Enable CORS
+    # Enable CORS - use CORS_ORIGINS env var or restrictive defaults
+    cors_origins_env = os.environ.get('CORS_ORIGINS', '')
+    if cors_origins_env == '*':
+        cors_origins = '*'  # Allow all (only for development/specific cases)
+    elif cors_origins_env:
+        cors_origins = [origin.strip() for origin in cors_origins_env.split(',') if origin.strip()]
+    else:
+        # Default to localhost only for development
+        cors_origins = ["http://localhost:5173", "http://localhost:5000", "http://127.0.0.1:5173", "http://127.0.0.1:5000"]
+        if not is_production:
+            logger.info("CORS_ORIGINS not set, using localhost defaults for development")
+
     CORS(app, resources={
         r"/api/*": {
-            "origins": "*",
+            "origins": cors_origins,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"]
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True
         }
     })
 
     # Initialize database
     from trexima.web.models import db, init_db
     db.init_app(app)
+
+    # Initialize Flask-Migrate for database migrations
+    from flask_migrate import Migrate
+    migrate = Migrate(app, db)
 
     # Initialize storage service
     from trexima.web.storage import init_storage
@@ -150,12 +180,20 @@ def create_app(config=None, testing=False):
     init_websocket(app)
 
     # ==========================================================================
-    # CREATE DATABASE TABLES
+    # DATABASE INITIALIZATION
     # ==========================================================================
+    # In production, use 'flask db upgrade' for migrations
+    # db.create_all() is used as fallback for development/testing when migrations aren't set up
 
     with app.app_context():
-        db.create_all()
-        logger.info("Database tables created/verified")
+        # Check if migrations directory exists
+        migrations_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'migrations')
+        if not os.path.exists(migrations_dir):
+            # No migrations - use create_all for development
+            db.create_all()
+            logger.info("Database tables created via db.create_all() (no migrations found)")
+        else:
+            logger.info("Migrations directory found - use 'flask db upgrade' for schema changes")
 
     # ==========================================================================
     # REGISTER BLUEPRINTS

@@ -56,7 +56,8 @@ TROUGH_COLOR = "white"
 BAR_COLOR = "#90ee90"
 
 # Excel Styles
-WORKBOOK_PASSWORD = "...ApTrans..."
+# Workbook password can be set via environment variable for protection
+WORKBOOK_PASSWORD = os.environ.get('WORKBOOK_PASSWORD', '')
 
 
 @dataclass

@@ -300,7 +300,8 @@ def get_system_stats():
     # Storage stats
     try:
         storage_stats = storage_service.get_storage_usage()
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Could not fetch storage stats: {e}")
         storage_stats = {'total_files': 0, 'total_size': 0}
 
     # Active operations
@@ -454,12 +455,14 @@ def cleanup_orphaned_storage():
     # Optional: delete orphans (only if explicitly requested)
     if request.args.get('delete') == 'true':
         deleted = 0
+        failed = 0
         for f in orphaned:
             try:
                 storage_service.delete_file(f['key'])
                 deleted += 1
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to delete orphaned file {f['key']}: {e}")
+                failed += 1
 
         logger.info(f"Admin {admin.email} deleted {deleted} orphaned storage files")
 

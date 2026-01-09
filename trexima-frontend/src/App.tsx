@@ -81,8 +81,8 @@ function App() {
           <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
 
-        {/* Debug Console - always visible for debugging */}
-        <DebugConsole isAdmin={true} />
+        {/* Debug Console - only visible in development mode */}
+        {import.meta.env.DEV && <DebugConsole isAdmin={true} />}
       </BrowserRouter>
     </QueryClientProvider>
   );

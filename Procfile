@@ -1,1 +1,1 @@
-web: gunicorn --bind 0.0.0.0:$PORT --workers 4 --timeout 300 --worker-class eventlet -w 1 'trexima.web.app:create_app()'
+web: gunicorn --bind 0.0.0.0:$PORT --worker-class eventlet --workers 1 --timeout 300 'trexima.web.app:create_app()'

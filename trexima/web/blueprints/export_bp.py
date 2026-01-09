@@ -219,8 +219,8 @@ def _execute_export(
                         if active_locales:
                             # Merge with requested locales
                             locales = list(set(locales + active_locales))
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning(f"Could not fetch active locales from API: {e}")
 
                 # Ensure en_US is always first
                 if 'en_US' in locales:
@@ -326,8 +326,8 @@ def _execute_export(
                     import shutil
                     try:
                         shutil.rmtree(temp_dir)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"Could not cleanup temp directory {temp_dir}: {e}")
 
 
 # =============================================================================

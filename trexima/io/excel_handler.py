@@ -137,7 +137,7 @@ class ExcelHandler:
                             parse_lang, sep=separator
                         ).english_name
                         worksheet[header_cell_id] = f"Label/Name in {locale_name}"
-                    except:
+                    except (ValueError, AttributeError, babel.UnknownLocaleError):
                         worksheet[header_cell_id] = f"Label/Name in {lang_id}"
                 else:
                     worksheet[header_cell_id] = "Label/Name in SF Debug Language"
@@ -292,7 +292,7 @@ class ExcelHandler:
         try:
             locale_name = babel.Locale.parse(parse_lang, sep=separator).english_name
             return f"Label in {locale_name} ({lang_id})"
-        except:
+        except (ValueError, AttributeError, babel.UnknownLocaleError):
             return f"Label in {lang_id}"
 
     def validate_translations_workbook(
