@@ -55,8 +55,9 @@ test_output_max/
 test_results/
 e2e_test_output/
 
-# Claude Code
-.claude/
+# Claude Code (keep agents for team sharing)
+.claude/*
+!.claude/agents/
 
 # Downloaded archives
 *.tar.gz
