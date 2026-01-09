@@ -1,138 +1,86 @@
 #!/bin/bash
-# TREXIMA BTP Deployment Script
-# Quick deployment helper for SAP BTP Cloud Foundry
+# TREXIMA v4.0 - Deployment Script for SAP BTP Cloud Foundry
 
 set -e
-
-echo "=========================================="
-echo "  TREXIMA - SAP BTP Deployment Script"
-echo "=========================================="
+echo "============================================"
+echo "TREXIMA v4.0 Deployment to SAP BTP"
+echo "============================================"
 echo ""
 
-# Colors for output
-RED='\033[0;31m'
 GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Function to print colored output
-print_success() {
-    echo -e "${GREEN}✓ $1${NC}"
-}
+SPACE=${CF_SPACE:-dev}
+ORG=${CF_ORG:-}
+API_ENDPOINT=${CF_API:-https://api.cf.eu10.hana.ondemand.com}
 
-print_error() {
-    echo -e "${RED}✗ $1${NC}"
-}
-
-print_info() {
-    echo -e "${YELLOW}ℹ $1${NC}"
-}
-
-# Check if CF CLI is installed
-echo "Step 1: Checking prerequisites..."
+echo -e "${BLUE}[1/8] Checking prerequisites...${NC}"
 if ! command -v cf &> /dev/null; then
-    print_error "Cloud Foundry CLI not found!"
-    echo ""
-    echo "Please install CF CLI:"
-    echo "  macOS:   brew install cloudfoundry/tap/cf-cli"
-    echo "  Windows: https://github.com/cloudfoundry/cli/releases"
-    echo "  Linux:   See DEPLOYMENT_QUICKSTART.md"
+    echo -e "${RED}Error: Cloud Foundry CLI not found.${NC}"
     exit 1
 fi
-
-cf_version=$(cf --version)
-print_success "Cloud Foundry CLI installed: $cf_version"
-
-# Check if logged in
+echo -e "${GREEN}✓ Prerequisites check passed${NC}"
 echo ""
-echo "Step 2: Checking CF login status..."
-if ! cf target &> /dev/null; then
-    print_error "Not logged in to Cloud Foundry"
-    echo ""
-    echo "Please login first:"
-    echo "  cf login"
-    echo ""
-    echo "Or use:"
-    echo "  cf login -a https://api.cf.eu10.hana.ondemand.com"
-    exit 1
+
+echo -e "${BLUE}[2/8] Logging in to Cloud Foundry...${NC}"
+if [ -z "$CF_ORG" ]; then
+    read -p "Organization: " ORG
 fi
+cf login -a "$API_ENDPOINT" -o "$ORG" -s "$SPACE"
+echo -e "${GREEN}✓ Logged in${NC}"
+echo ""
 
-target_info=$(cf target)
-print_success "Logged in to Cloud Foundry"
-echo "$target_info"
+echo -e "${BLUE}[3/8] Building React frontend...${NC}"
+cd trexima-frontend
+npm install
+npm run build
+cd ..
+echo -e "${GREEN}✓ Frontend built${NC}"
+echo ""
 
-# Confirm deployment
+echo -e "${BLUE}[4/8] Preparing static assets...${NC}"
+rm -rf trexima/web/static/dist
+mkdir -p trexima/web/static/dist
+cp -r trexima-frontend/dist/* trexima/web/static/dist/
+echo -e "${GREEN}✓ Static assets prepared${NC}"
 echo ""
-echo "Step 3: Ready to deploy..."
-print_info "This will deploy TREXIMA to SAP BTP Cloud Foundry"
-echo ""
-read -p "Continue with deployment? (y/n) " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Deployment cancelled."
-    exit 0
-fi
 
-# Check if app already exists
-echo ""
-echo "Step 4: Checking for existing deployment..."
-if cf app trexima-web &> /dev/null; then
-    print_info "App 'trexima-web' already exists"
-    echo ""
-    read -p "Update existing app? (y/n) " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo "Deployment cancelled."
-        exit 0
+echo -e "${BLUE}[5/8] Checking services...${NC}"
+REQUIRED_SERVICES=("trexima-postgres" "trexima-objectstore" "trexima-xsuaa")
+for service in "${REQUIRED_SERVICES[@]}"; do
+    if ! cf service "$service" &> /dev/null; then
+        echo -e "${RED}Error: Service '$service' not found!${NC}"
+        echo "Run ./create-services.sh first"
+        exit 1
     fi
-    ACTION="update"
-else
-    print_info "This will be a new deployment"
-    ACTION="new"
+    echo -e "${GREEN}✓ Service '$service' exists${NC}"
+done
+echo ""
+
+echo -e "${BLUE}[6/8] Pushing application...${NC}"
+cf push -f manifest.yml
+echo -e "${GREEN}✓ Application pushed${NC}"
+echo ""
+
+echo -e "${BLUE}[7/8] Running database migrations...${NC}"
+cf run-task trexima-v4 "python -c 'from trexima.web.app import create_app; from trexima.web.models import db; app = create_app(); app.app_context().push(); db.create_all()'" --name db-migration
+echo -e "${GREEN}✓ Migration started${NC}"
+echo ""
+
+echo -e "${BLUE}[8/8] Verifying deployment...${NC}"
+APP_URL=$(cf app trexima-v4 | grep -oP 'routes:\s+\K\S+' | head -1)
+if [ -z "$APP_URL" ]; then
+    APP_URL="trexima-v4.cfapps.eu10.hana.ondemand.com"
 fi
 
-# Deploy application
 echo ""
-echo "Step 5: Deploying application..."
-print_info "This may take 2-3 minutes..."
+echo "============================================"
+echo -e "${GREEN}DEPLOYMENT SUCCESSFUL!${NC}"
+echo "============================================"
 echo ""
-
-if cf push trexima-web -f manifest.yml; then
-    print_success "Application deployed successfully!"
-else
-    print_error "Deployment failed!"
-    echo ""
-    echo "Check logs with:"
-    echo "  cf logs trexima-web --recent"
-    exit 1
-fi
-
-# Get app info
-echo ""
-echo "Step 6: Getting application information..."
-echo ""
-cf app trexima-web
-
-# Get the route
-APP_ROUTE=$(cf app trexima-web | grep routes: | awk '{print $2}')
-
-echo ""
-echo "=========================================="
-print_success "Deployment Complete!"
-echo "=========================================="
-echo ""
-echo "Your application is now running at:"
-echo "  https://$APP_ROUTE"
-echo ""
-echo "Useful commands:"
-echo "  View logs:    cf logs trexima-web"
-echo "  Check status: cf app trexima-web"
-echo "  Restart app:  cf restart trexima-web"
-echo ""
-echo "Next steps:"
-echo "  1. Open the app URL in your browser"
-echo "  2. Configure SF credentials (see DEPLOYMENT_QUICKSTART.md)"
-echo "  3. Test export/import functionality"
-echo ""
-print_info "For detailed configuration, see DEPLOYMENT_BTP.md"
+echo "Application URL: https://$APP_URL"
+echo "Health Check:    https://$APP_URL/api/health"
 echo ""

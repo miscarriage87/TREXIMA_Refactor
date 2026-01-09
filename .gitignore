@@ -51,6 +51,13 @@ venv.bak/
 test_output/
 test_output_max/
 test_results/
+e2e_test_output/
+
+# Claude Code
+.claude/
+
+# Downloaded archives
+*.tar.gz
 
 # Excel files (except sample templates if needed)
 *.xlsx
@@ -58,8 +65,8 @@ test_results/
 
 # Large XML files - consider using Git LFS if needed
 # Uncomment if you don't want to track large data model files
-# EC-*.xml
-# *.xml
+EC-*.xml
+*.xml
 
 # CSV files (large data files)
 Picklist-Values.csv

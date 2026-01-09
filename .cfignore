@@ -1,76 +1,63 @@
-# Cloud Foundry Ignore File for TREXIMA
-
-# Git
-.git/
-.gitignore
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-*.egg-info/
-dist/
-build/
-
-# Virtual Environments
-venv/
 env/
+venv/
 ENV/
+
+# Node modules (but NOT dist!)
+node_modules/
+npm-debug.log*
+trexima-frontend/node_modules/
+trexima-frontend/.vite/
 
 # IDEs
 .vscode/
 .idea/
 *.swp
-*.swo
-*~
+
+# OS
 .DS_Store
 
-# Test Output
-test_output/
-test_output_max/
-test_results/
-
-# Large test files (will be loaded from external storage in production)
-Picklist-Values.csv
-
-# Test scripts (not needed in production)
+# Tests
+tests/
 test_*.py
+*.test.ts
+*.test.tsx
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Documentation (optional - can include if needed)
-README_REFACTORED.md
+# Documentation (keep only README)
+docs/
+*.md
+!README.md
+!ROLE_ASSIGNMENT_GUIDE.md
 
-# Original monolithic script (reference only)
-SFConfigProcessor.py
+# Git
+.git/
+.gitignore
+.github/
 
-# Local configuration and credentials
-LoginCredentialsForAPI.txt
-*.env
-*.env.local
-credentials.json
-secrets.json
+# Environment
+.env
+.env.local
 
-# Log files
+# Logs and databases (local dev only)
 *.log
-logs/
-ImportLog_*.log
+*.db
+*.sqlite
+*.sqlite3
 
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.backup
-~$*.xlsx
+# Local upload/output folders
+trexima/web/uploads/
+trexima/web/output/
 
-# OS files
-.DS_Store
-Thumbs.db
+# Jupyter
+*.ipynb
 
-# Claude development
-.claude/
-
-# Build artifacts
-mta_archives/
-resources/
-.che/
+# IMPORTANT: Do NOT exclude dist folders - we need the frontend build!
+# trexima-frontend/dist should be included in deployment

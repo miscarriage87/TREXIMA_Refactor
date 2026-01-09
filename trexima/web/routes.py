@@ -74,9 +74,9 @@ def register_routes(app):
 
 # ==================== Main Routes ====================
 
-@main_bp.route('/')
-def index():
-    """Main page."""
+@main_bp.route('/legacy')
+def legacy_index():
+    """Legacy main page (deprecated - use React app at /)."""
     return render_template('index.html')
 
 

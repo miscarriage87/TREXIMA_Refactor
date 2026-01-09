@@ -33,7 +33,10 @@ from .config import (
     ImportConfig
 )
 
-from .orchestrator import Orchestrator
+# Lazy import of Orchestrator to avoid importing UI dependencies in web mode
+def _get_orchestrator():
+    from .orchestrator import Orchestrator
+    return Orchestrator
 
 from .models import (
     DataModel,
@@ -67,8 +70,15 @@ __author__ = "TREXIMA Team"
 
 def run_app():
     """Run the TREXIMA application with GUI."""
+    Orchestrator = _get_orchestrator()
     orchestrator = Orchestrator()
     orchestrator.run()
+
+# Export Orchestrator as a module-level attribute (lazy loaded)
+def __getattr__(name):
+    if name == 'Orchestrator':
+        return _get_orchestrator()
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
 __all__ = [

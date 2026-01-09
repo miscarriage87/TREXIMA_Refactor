@@ -6,12 +6,12 @@ Use this checklist before deploying to SAP BTP to ensure everything is ready.
 
 ## ☑️ SAP BTP Account Access
 
-- [ ] I have access to an SAP BTP account (trial or enterprise)
-- [ ] I can login to SAP BTP Cockpit: https://account.hanatrial.ondemand.com/
-- [ ] I have a subaccount with Cloud Foundry enabled
-- [ ] I know my API endpoint (e.g., `https://api.cf.eu10.hana.ondemand.com`)
-- [ ] I know my Org name
-- [ ] I know my Space name (e.g., `dev` or `prod`)
+- [x] I have access to an SAP BTP account (trial or enterprise)
+- [x] I can login to SAP BTP Cockpit: https://account.hanatrial.ondemand.com/
+- [x] I have a subaccount with Cloud Foundry enabled
+- [x] I know my API endpoint --> https://api.cf.eu10-004.hana.ondemand.com
+- [x] I know my Org name --> Deloitte Consulting GmbH_hrisbtpsubaccount-yzr6xc10
+- [x] I know my Space name (e.g., `dev` or `prod`)
 
 **Where to find this info:**
 - BTP Cockpit → Subaccount → Overview → Cloud Foundry Environment
@@ -22,9 +22,9 @@ Use this checklist before deploying to SAP BTP to ensure everything is ready.
 
 Check in: BTP Cockpit → Subaccount → Entitlements
 
-- [ ] Application Runtime: **512 MB** available (minimum)
-- [ ] Destination service: **1 instance** available (for SF connection)
-- [ ] XSUAA service: **1 instance** available (for authentication)
+- [x] Application Runtime: **512 MB** available (minimum) --> 600GB (!)
+- [x] Destination service: **1 instance** available (for SF connection)
+- [x] XSUAA service: **1 instance** available (for authentication)
 
 **If quota is insufficient:**
 - Request more from your BTP administrator
@@ -35,7 +35,7 @@ Check in: BTP Cockpit → Subaccount → Entitlements
 ## ☑️ Local Tools Installed
 
 ### Cloud Foundry CLI
-- [ ] CF CLI installed (version 7.x or 8.x)
+- [x] CF CLI installed (version 7.x or 8.x)
 
 **Test:** Open terminal and run:
 ```bash
@@ -59,11 +59,11 @@ cf --version
 
 For connecting TREXIMA to SuccessFactors:
 
-- [ ] I have the OData API URL (e.g., `https://apisalesdemo2.successfactors.eu/odata/v2`)
-- [ ] I have the Company ID (e.g., `SFCPART000377`)
-- [ ] I have API credentials (username/password or OAuth)
-- [ ] I know which authentication method to use:
-  - [ ] Basic Auth (username/password)
+- [x] I have the OData API URL --> https://apisalesdemo2.successfactors.eu/odata/v2
+- [x] I have the Company ID --> SFCPART000377
+- [x] I have API credentials (username/password or OAuth) --> TREXIMA / Trexima@2024
+- [x] I know which authentication method to use:
+  - [x] Basic Auth (username/password)
   - [ ] OAuth2 SAML Bearer Assertion
 
 **You'll need this after deployment to configure the connection**
@@ -72,15 +72,15 @@ For connecting TREXIMA to SuccessFactors:
 
 ## ☑️ Repository & Code
 
-- [ ] Code is up to date from GitHub
-- [ ] Latest commit is: `75c2e2a` (or newer)
-- [ ] All required files are present:
-  - [ ] `manifest.yml`
-  - [ ] `runtime.txt`
-  - [ ] `Procfile`
-  - [ ] `requirements_new.txt`
-  - [ ] `trexima/` directory with all modules
-  - [ ] `.cfignore`
+- [x] Code is up to date from GitHub
+- [x] Latest commit is: `75c2e2a` (or newer)
+- [x] All required files are present:
+  - [x] `manifest.yml`
+  - [x] `runtime.txt`
+  - [x] `Procfile`
+  - [x] `requirements_new.txt`
+  - [x] `trexima/` directory with all modules
+  - [x] `.cfignore`
 
 **Verify:** Run `git status` in your TREXIMA directory
 
@@ -89,26 +89,26 @@ For connecting TREXIMA to SuccessFactors:
 ## ☑️ Pre-Deployment Configuration
 
 ### Review manifest.yml
-- [ ] App name is correct: `trexima-web`
-- [ ] Memory allocation is appropriate: `512M` (default)
-- [ ] Buildpack is correct: `python_buildpack`
+- [x] App name is correct: `trexima-web`
+- [x] Memory allocation is appropriate: `512M` (default)
+- [x] Buildpack is correct: `python_buildpack`
 
 ### Review runtime.txt
-- [ ] Python version specified: `python-3.9.18`
+- [x] Python version specified: `python-3.9.18`
 
 ### Review requirements_new.txt
-- [ ] All dependencies are listed
-- [ ] No version conflicts
+- [x] All dependencies are listed
+- [x] No version conflicts
 
 ---
 
 ## ☑️ Security Considerations
 
-- [ ] LoginCredentialsForAPI.txt is in `.gitignore` (should NOT be deployed)
-- [ ] `.cfignore` excludes test files and credentials
-- [ ] I have a plan for managing SF credentials:
-  - [ ] Option A: Environment variables (quick test)
-  - [ ] Option B: Destination service (production)
+- [x] LoginCredentialsForAPI.txt is in `.gitignore` (should NOT be deployed)
+- [x] `.cfignore` excludes test files and credentials
+- [x] I have a plan for managing SF credentials:
+  - [x] Option A: Environment variables (quick test)
+**- [ ] Option B: Destination service (production)**
 
 **Verify .cfignore excludes:**
 - `LoginCredentialsForAPI.txt`
@@ -153,7 +153,7 @@ After deployment, I will test:
 
 ## ☑️ Support Resources Ready
 
-- [ ] I have bookmarked DEPLOYMENT_QUICKSTART.md
+- [x] I have bookmarked DEPLOYMENT_QUICKSTART.md
 - [ ] I have bookmarked DEPLOYMENT_BTP.md
 - [ ] I know where to check logs: `cf logs trexima-web --recent`
 - [ ] I know where to get help:
