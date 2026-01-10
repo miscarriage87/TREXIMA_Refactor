@@ -10,6 +10,12 @@ Usage:
     python run_web.py --debug
 """
 
+# IMPORTANT: Eventlet monkey-patching must happen BEFORE any other imports
+# This ensures all standard library modules (socket, threading, etc.) are patched
+# to work cooperatively with eventlet's green threads
+import eventlet
+eventlet.monkey_patch()
+
 import sys
 import os
 import argparse

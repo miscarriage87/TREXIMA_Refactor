@@ -1,5 +1,5 @@
 """
-TREXIMA v4.0 Web Application
+TREXIMA v2.0 Web Application
 
 Enterprise-grade Flask web application with:
 - SAP BTP XSUAA authentication

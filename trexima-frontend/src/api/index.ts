@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - API Module Index
+ * TREXIMA v2.0 - API Module Index
  */
 
 export { default as apiClient, getErrorMessage } from './client';

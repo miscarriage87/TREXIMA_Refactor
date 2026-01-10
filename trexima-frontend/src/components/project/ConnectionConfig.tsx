@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Connection Configuration Component
+ * TREXIMA v2.0 - Connection Configuration Component
  *
  * SF OData API connection configuration and testing.
  */

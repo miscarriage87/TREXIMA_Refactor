@@ -1,5 +1,5 @@
 """
-TREXIMA v4.0 - Import Blueprint
+TREXIMA v2.0 - Import Blueprint
 
 Handles translation import workflow:
 1. Accepts updated translation workbook

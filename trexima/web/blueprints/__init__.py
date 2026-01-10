@@ -1,5 +1,5 @@
 """
-TREXIMA v4.0 - API Blueprints
+TREXIMA v2.0 - API Blueprints
 
 This package contains all Flask blueprints for the TREXIMA API.
 """

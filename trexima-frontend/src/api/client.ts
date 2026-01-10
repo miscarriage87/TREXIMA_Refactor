@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - API Client
+ * TREXIMA v2.0 - API Client
  *
  * Axios-based HTTP client with authentication and error handling.
  */

@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - WebSocket Service
+ * TREXIMA v2.0 - WebSocket Service
  *
  * Socket.IO client for real-time progress updates.
  * Provides connection management, project subscriptions, and event handling.

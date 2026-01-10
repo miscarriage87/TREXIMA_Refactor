@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Admin Page
+ * TREXIMA v2.0 - Admin Page
  *
  * Administrator dashboard for system management.
  */

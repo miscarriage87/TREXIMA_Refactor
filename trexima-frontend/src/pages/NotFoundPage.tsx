@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - 404 Not Found Page
+ * TREXIMA v2.0 - 404 Not Found Page
  */
 
 import { Link } from 'react-router-dom';

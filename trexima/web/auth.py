@@ -1,5 +1,5 @@
 """
-TREXIMA v4.0 - Authentication Module
+TREXIMA v2.0 - Authentication Module
 
 SAP BTP XSUAA integration for user authentication.
 Handles JWT token validation and user context.

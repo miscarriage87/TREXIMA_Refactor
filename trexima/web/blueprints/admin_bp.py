@@ -1,5 +1,5 @@
 """
-TREXIMA v4.0 - Admin Blueprint
+TREXIMA v2.0 - Admin Blueprint
 
 Administrator endpoints for user management, system oversight, and statistics.
 """

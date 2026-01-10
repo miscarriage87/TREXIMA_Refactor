@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Authentication API
+ * TREXIMA v2.0 - Authentication API
  */
 
 import apiClient from './client';

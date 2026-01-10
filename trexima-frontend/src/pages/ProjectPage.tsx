@@ -1,13 +1,14 @@
 /**
- * TREXIMA v4.0 - Project Page
+ * TREXIMA v2.0 - Project Page
  *
- * Main project workspace with workflow sections.
+ * Main project workspace with separate EXPORT and IMPORT workflows.
  */
 
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
+  ArrowRight,
   Upload,
   Globe,
   FileSpreadsheet,
@@ -15,7 +16,11 @@ import {
   CheckCircle,
   AlertCircle,
   Settings,
-  ArrowUpCircle,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  FileCheck,
+  ListChecks,
+  Play,
 } from 'lucide-react';
 import { useProjectStore } from '../store/projectStore';
 import wsService from '../api/websocket';
@@ -26,8 +31,14 @@ import ExportConfig from '../components/project/ExportConfig';
 import ExportSummary from '../components/project/ExportSummary';
 import ImportSummary from '../components/project/ImportSummary';
 
-// Workflow section type
-type Section = 'files' | 'connection' | 'config' | 'export' | 'import';
+// Workflow modes
+type WorkflowMode = 'export' | 'import';
+
+// Export workflow sections
+type ExportSection = 'files' | 'connection' | 'config' | 'export';
+
+// Import workflow sections
+type ImportSection = 'upload' | 'consistency' | 'summary' | 'execute';
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -42,7 +53,10 @@ export default function ProjectPage() {
     updateProgress,
   } = useProjectStore();
 
-  const [activeSection, setActiveSection] = useState<Section>('files');
+  // Workflow state
+  const [workflowMode, setWorkflowMode] = useState<WorkflowMode>('export');
+  const [exportSection, setExportSection] = useState<ExportSection>('files');
+  const [importSection, setImportSection] = useState<ImportSection>('upload');
 
   // Fetch project on mount
   useEffect(() => {
@@ -56,14 +70,12 @@ export default function ProjectPage() {
   useEffect(() => {
     if (!projectId) return;
 
-    // Connect and subscribe to project updates
     wsService.connect().then(() => {
       wsService.subscribeToProject(projectId);
     }).catch((err) => {
       console.warn('WebSocket connection failed, progress updates may be delayed:', err);
     });
 
-    // Register callbacks for progress updates
     const unsubProgress = wsService.onProgress(projectId, (progress) => {
       updateProgress(progress);
     });
@@ -79,7 +91,6 @@ export default function ProjectPage() {
       clearProgress();
     });
 
-    // Cleanup on unmount
     return () => {
       unsubProgress();
       unsubComplete();
@@ -112,18 +123,26 @@ export default function ProjectPage() {
     );
   }
 
-  const sections = [
-    { id: 'files' as Section, name: 'Data Models', icon: Upload, description: 'Upload XML files' },
-    { id: 'connection' as Section, name: 'SF Connection', icon: Globe, description: 'Connect to SF' },
-    { id: 'config' as Section, name: 'Configuration', icon: Settings, description: 'Select options' },
-    { id: 'export' as Section, name: 'Export', icon: FileSpreadsheet, description: 'Generate workbook' },
-    { id: 'import' as Section, name: 'Import', icon: ArrowUpCircle, description: 'Import translations' },
+  // Export workflow steps
+  const exportSteps = [
+    { id: 'files' as ExportSection, name: 'Data Models', icon: Upload, description: 'Upload XML files' },
+    { id: 'connection' as ExportSection, name: 'SF Connection', icon: Globe, description: 'Connect to SF' },
+    { id: 'config' as ExportSection, name: 'Configuration', icon: Settings, description: 'Select options' },
+    { id: 'export' as ExportSection, name: 'Export', icon: FileSpreadsheet, description: 'Generate workbook' },
   ];
 
-  const getSectionStatus = (section: Section): 'pending' | 'complete' | 'active' => {
-    if (activeSection === section) return 'active';
+  // Import workflow steps
+  const importSteps = [
+    { id: 'upload' as ImportSection, name: 'Excel Upload', icon: Upload, description: 'Upload workbook' },
+    { id: 'consistency' as ImportSection, name: 'Consistency Check', icon: FileCheck, description: 'Validate file' },
+    { id: 'summary' as ImportSection, name: 'Summary', icon: ListChecks, description: 'Review changes' },
+    { id: 'execute' as ImportSection, name: 'Execute', icon: Play, description: 'Run import' },
+  ];
 
-    switch (section) {
+  const getExportStepStatus = (step: ExportSection): 'pending' | 'complete' | 'active' => {
+    if (exportSection === step) return 'active';
+
+    switch (step) {
       case 'files':
         return (currentProject.file_count || 0) > 0 ? 'complete' : 'pending';
       case 'connection':
@@ -134,12 +153,45 @@ export default function ProjectPage() {
         return currentProject.status === 'exported' || currentProject.status === 'imported'
           ? 'complete'
           : 'pending';
-      case 'import':
-        return currentProject.status === 'imported' ? 'complete' : 'pending';
       default:
         return 'pending';
     }
   };
+
+  const getImportStepStatus = (step: ImportSection): 'pending' | 'complete' | 'active' => {
+    if (importSection === step) return 'active';
+    // For now, all import steps are pending except active
+    return 'pending';
+  };
+
+  // Export navigation helpers
+  const exportIndex = exportSteps.findIndex((s) => s.id === exportSection);
+  const prevExportStep = exportIndex > 0 ? exportSteps[exportIndex - 1] : null;
+  const nextExportStep = exportIndex < exportSteps.length - 1 ? exportSteps[exportIndex + 1] : null;
+
+  // Import navigation helpers
+  const importIndex = importSteps.findIndex((s) => s.id === importSection);
+  const prevImportStep = importIndex > 0 ? importSteps[importIndex - 1] : null;
+  const nextImportStep = importIndex < importSteps.length - 1 ? importSteps[importIndex + 1] : null;
+
+  const handleExportPrev = () => {
+    if (prevExportStep) setExportSection(prevExportStep.id);
+  };
+
+  const handleExportNext = () => {
+    if (nextExportStep) setExportSection(nextExportStep.id);
+  };
+
+  const handleImportPrev = () => {
+    if (prevImportStep) setImportSection(prevImportStep.id);
+  };
+
+  const handleImportNext = () => {
+    if (nextImportStep) setImportSection(nextImportStep.id);
+  };
+
+  const currentSteps = workflowMode === 'export' ? exportSteps : importSteps;
+  const getStepStatus = workflowMode === 'export' ? getExportStepStatus : getImportStepStatus;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -182,32 +234,58 @@ export default function ProjectPage() {
         progress={activeOperation.progress}
         onCancel={
           activeOperation.type === 'export' && projectId
-            ? () => {
-                // Handle cancel
-                clearProgress();
-              }
+            ? () => clearProgress()
             : undefined
         }
         onClose={() => clearProgress()}
       />
 
-      {/* Workflow Steps */}
+      {/* Main Workflow Tabs */}
       <div className="mb-6">
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setWorkflowMode('export')}
+            className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+              workflowMode === 'export'
+                ? 'border-sap-blue-500 text-sap-blue-600 bg-sap-blue-50'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <ArrowDownToLine className="w-5 h-5 mr-2" />
+            EXPORT to Excel
+          </button>
+          <button
+            onClick={() => setWorkflowMode('import')}
+            className={`flex items-center px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+              workflowMode === 'import'
+                ? 'border-green-500 text-green-600 bg-green-50'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <ArrowUpFromLine className="w-5 h-5 mr-2" />
+            IMPORT from Excel
+          </button>
+        </div>
+      </div>
+
+      {/* Workflow Steps - Sticky progress indicator */}
+      <div className="sticky top-0 z-10 bg-gray-50 pt-2 pb-4 mb-6 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <nav className="flex space-x-2 overflow-x-auto pb-2">
-          {sections.map((section, index) => {
-            const status = getSectionStatus(section.id);
-            const Icon = section.icon;
+          {currentSteps.map((step, index) => {
+            const status = getStepStatus(step.id as ExportSection & ImportSection);
+            const Icon = step.icon;
 
             return (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id)}
-                className={`flex-shrink-0 flex items-center px-4 py-3 rounded-lg border-2 transition-colors ${
+              <div
+                key={step.id}
+                className={`flex-shrink-0 flex items-center px-4 py-3 rounded-lg border-2 ${
                   status === 'active'
-                    ? 'border-sap-blue-500 bg-sap-blue-50 text-sap-blue-700'
+                    ? workflowMode === 'export'
+                      ? 'border-sap-blue-500 bg-sap-blue-50 text-sap-blue-700'
+                      : 'border-green-500 bg-green-50 text-green-700'
                     : status === 'complete'
                     ? 'border-green-200 bg-green-50 text-green-700'
-                    : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                    : 'border-gray-200 bg-white text-gray-500'
                 }`}
               >
                 <div className="flex items-center">
@@ -221,12 +299,12 @@ export default function ProjectPage() {
                   <div className="text-left">
                     <div className="flex items-center">
                       <Icon className="w-4 h-4 mr-1" />
-                      <span className="text-sm font-medium">{section.name}</span>
+                      <span className="text-sm font-medium">{step.name}</span>
                     </div>
-                    <p className="text-xs opacity-75">{section.description}</p>
+                    <p className="text-xs opacity-75">{step.description}</p>
                   </div>
                 </div>
-              </button>
+              </div>
             );
           })}
         </nav>
@@ -235,24 +313,119 @@ export default function ProjectPage() {
       {/* Section Content */}
       <div className="card">
         <div className="card-body">
-          {activeSection === 'files' && projectId && (
-            <FileUploadZone projectId={projectId} />
+          {/* EXPORT Workflow Content */}
+          {workflowMode === 'export' && (
+            <>
+              {exportSection === 'files' && projectId && (
+                <FileUploadZone projectId={projectId} />
+              )}
+              {exportSection === 'connection' && projectId && (
+                <ConnectionConfig projectId={projectId} />
+              )}
+              {exportSection === 'config' && projectId && (
+                <ExportConfig projectId={projectId} />
+              )}
+              {exportSection === 'export' && projectId && (
+                <ExportSummary projectId={projectId} />
+              )}
+            </>
           )}
 
-          {activeSection === 'connection' && projectId && (
-            <ConnectionConfig projectId={projectId} />
+          {/* IMPORT Workflow Content */}
+          {workflowMode === 'import' && (
+            <>
+              {importSection === 'upload' && projectId && (
+                <ImportSummary projectId={projectId} />
+              )}
+              {importSection === 'consistency' && projectId && (
+                <div className="text-center py-12">
+                  <FileCheck className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900">Consistency Check</h3>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Upload an Excel file first to run the consistency check.
+                  </p>
+                </div>
+              )}
+              {importSection === 'summary' && projectId && (
+                <div className="text-center py-12">
+                  <ListChecks className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900">Import Summary</h3>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Complete the consistency check to see the import summary.
+                  </p>
+                </div>
+              )}
+              {importSection === 'execute' && projectId && (
+                <div className="text-center py-12">
+                  <Play className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900">Execute Import</h3>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Review the summary before executing the import.
+                  </p>
+                </div>
+              )}
+            </>
           )}
+        </div>
 
-          {activeSection === 'config' && projectId && (
-            <ExportConfig projectId={projectId} />
-          )}
+        {/* Bottom Navigation */}
+        <div className="flex justify-between items-center border-t border-gray-200 px-6 py-4 bg-gray-50">
+          {workflowMode === 'export' ? (
+            <>
+              <button
+                onClick={handleExportPrev}
+                disabled={!prevExportStep}
+                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  prevExportStep
+                    ? 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                    : 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed'
+                }`}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                {prevExportStep ? prevExportStep.name : 'Back'}
+              </button>
 
-          {activeSection === 'export' && projectId && (
-            <ExportSummary projectId={projectId} />
-          )}
+              <button
+                onClick={handleExportNext}
+                disabled={!nextExportStep}
+                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  nextExportStep
+                    ? 'text-white bg-sap-blue-600 hover:bg-sap-blue-700'
+                    : 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed'
+                }`}
+              >
+                {nextExportStep ? nextExportStep.name : 'Done'}
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={handleImportPrev}
+                disabled={!prevImportStep}
+                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  prevImportStep
+                    ? 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                    : 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed'
+                }`}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                {prevImportStep ? prevImportStep.name : 'Back'}
+              </button>
 
-          {activeSection === 'import' && projectId && (
-            <ImportSummary projectId={projectId} />
+              <button
+                onClick={handleImportNext}
+                disabled={!nextImportStep}
+                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  nextImportStep
+                    ? 'text-white bg-green-600 hover:bg-green-700'
+                    : 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed'
+                }`}
+              >
+                {nextImportStep ? nextImportStep.name : 'Done'}
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </button>
+            </>
           )}
         </div>
       </div>

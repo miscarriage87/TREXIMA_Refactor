@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - File Upload Zone Component
+ * TREXIMA v2.0 - File Upload Zone Component
  *
  * Drag-and-drop file upload with file type detection.
  */

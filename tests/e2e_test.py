@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TREXIMA v4.0 - End-to-End Test Script
+TREXIMA v2.0 - End-to-End Test Script
 
 Tests the complete export and import workflow:
 1. Load XML data model files
@@ -66,7 +66,7 @@ def progress_callback(percent, message):
 
 def main():
     """Run end-to-end test."""
-    print_header("TREXIMA v4.0 - End-to-End Test")
+    print_header("TREXIMA v2.0 - End-to-End Test")
     print(f"Timestamp: {TIMESTAMP}")
     print(f"Output directory: {OUTPUT_DIR}")
 

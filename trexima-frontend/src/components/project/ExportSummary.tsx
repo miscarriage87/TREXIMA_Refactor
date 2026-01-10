@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Export Summary Component
+ * TREXIMA v2.0 - Export Summary Component
  *
  * Summary and action panel for starting export operation.
  * Includes polling for progress since WebSocket is disabled.
@@ -34,6 +34,7 @@ export default function ExportSummary({ projectId }: ExportSummaryProps) {
   } = useProjectStore();
 
   const [isExporting, setIsExporting] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [exportProgress, setExportProgress] = useState<{
     active: boolean;
     message?: string;
@@ -70,8 +71,35 @@ export default function ExportSummary({ projectId }: ExportSummaryProps) {
         if (!stillActive) {
           setIsExporting(false);
           // Refresh downloads and project when export completes
-          fetchDownloads(projectId);
+          await fetchDownloads(projectId);
           fetchProject(projectId);
+
+          // Auto-download the latest export file
+          try {
+            const downloadFiles = await projectsApi.files.listDownloads(projectId);
+            const latest = downloadFiles
+              .filter((f) => f.file_type === 'translation_workbook')
+              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+            if (latest) {
+              // Small delay to ensure UI updates first
+              setTimeout(() => {
+                const blob = projectsApi.files.downloadFile(projectId, latest.id);
+                blob.then((data) => {
+                  const url = window.URL.createObjectURL(data);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = latest.filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(url);
+                });
+              }, 500);
+            }
+          } catch (err) {
+            console.error('Auto-download failed:', err);
+          }
+
           if (pollInterval) {
             clearInterval(pollInterval);
           }
@@ -94,12 +122,17 @@ export default function ExportSummary({ projectId }: ExportSummaryProps) {
   const handleStartExport = async () => {
     if (isExporting || exportProgress.active) return;
 
+    setLocalError(null);
     setIsExporting(true);
     setExportProgress({ active: true, message: 'Starting export...' });
+
     try {
       await startExport(projectId, currentProject?.config);
       // Polling will handle the rest
-    } catch {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Export failed. Please try again.';
+      setLocalError(message);
+      console.error('Export error:', err);
       setIsExporting(false);
       setExportProgress({ active: false });
     }
@@ -107,6 +140,24 @@ export default function ExportSummary({ projectId }: ExportSummaryProps) {
 
   const handleRefreshDownloads = () => {
     fetchDownloads(projectId);
+  };
+
+  // Download file using blob (with auth)
+  const handleDownload = async (fileId: string, filename: string) => {
+    try {
+      const blob = await projectsApi.files.downloadFile(projectId, fileId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+      setLocalError('Download failed. Please try again.');
+    }
   };
 
   // Get latest export file
@@ -219,9 +270,22 @@ export default function ExportSummary({ projectId }: ExportSummaryProps) {
             <div className="border-t pt-3 mt-3">
               <p className="text-xs font-medium text-gray-700 mb-2">Export Options:</p>
               <div className="space-y-1 text-xs text-gray-600">
-                {config?.export_picklists && <div>✓ Picklists</div>}
+                {/* Picklists */}
+                {config?.export_mdf_picklists && <div>✓ MDF Picklists</div>}
+                {config?.export_legacy_picklists && <div>✓ Legacy Picklists</div>}
+                {/* Objects */}
                 {config?.export_mdf_objects && <div>✓ MDF Objects</div>}
-                {config?.export_fo_translations && <div>✓ Foundation Objects</div>}
+                {config?.export_fo_translations && <div>✓ Foundation Object Translations</div>}
+                {/* Details */}
+                {config?.ec_objects && config.ec_objects.length > 0 && (
+                  <div className="text-gray-500">EC Objects: {config.ec_objects.length} selected</div>
+                )}
+                {config?.fo_translation_types && config.fo_translation_types.length > 0 && (
+                  <div className="text-gray-500">FO Types: {config.fo_translation_types.length} selected</div>
+                )}
+                {config?.mdf_objects && config.mdf_objects.length > 0 && (
+                  <div className="text-gray-500">Custom MDF: {config.mdf_objects.length} selected</div>
+                )}
               </div>
             </div>
           )}
@@ -243,9 +307,7 @@ export default function ExportSummary({ projectId }: ExportSummaryProps) {
                   Generated {new Date(latestExport.created_at).toLocaleString()}
                 </p>
                 <button
-                  onClick={() => {
-                    window.open(`/api/projects/${projectId}/download/${latestExport.id}`, '_blank');
-                  }}
+                  onClick={() => handleDownload(latestExport.id, latestExport.filename)}
                   className="mt-2 text-xs text-green-700 hover:text-green-900 font-medium"
                 >
                   → Download Previous Export
@@ -264,9 +326,15 @@ export default function ExportSummary({ projectId }: ExportSummaryProps) {
       )}
 
       {/* Error */}
-      {error && (
+      {(error || localError) && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-600">{error}</p>
+          <div className="flex items-start">
+            <AlertCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-800">Export Error</p>
+              <p className="text-sm text-red-600 mt-1">{localError || error}</p>
+            </div>
+          </div>
         </div>
       )}
 

@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Main Application Component
+ * TREXIMA v2.0 - Main Application Component
  */
 
 import { useEffect } from 'react';

@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Login Page
+ * TREXIMA v2.0 - Login Page
  *
  * Handles authentication flow.
  * In production: Redirects to XSUAA login

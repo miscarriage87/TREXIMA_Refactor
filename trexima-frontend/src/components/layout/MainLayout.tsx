@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Main Layout Component
+ * TREXIMA v2.0 - Main Layout Component
  *
  * Application shell with header and main content area.
  */
@@ -175,7 +175,7 @@ export default function MainLayout() {
       <footer className="bg-white border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <p className="text-center text-xs text-gray-500">
-            TREXIMA v4.0 - SAP SuccessFactors Translation Management
+            TREXIMA v2.0 - SAP SuccessFactors Translation Management
           </p>
         </div>
       </footer>

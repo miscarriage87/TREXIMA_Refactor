@@ -1,5 +1,5 @@
 """
-TREXIMA v4.0 - Authentication Blueprint
+TREXIMA v2.0 - Authentication Blueprint
 
 Handles user authentication, session management, and OAuth configuration.
 """

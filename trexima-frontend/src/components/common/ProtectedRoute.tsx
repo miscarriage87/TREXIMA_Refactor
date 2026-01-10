@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Protected Route Component
+ * TREXIMA v2.0 - Protected Route Component
  *
  * Ensures user is authenticated before rendering children.
  */

@@ -1,8 +1,9 @@
 """
-TREXIMA v4.0 - Object Storage Service
+TREXIMA v2.0 - Object Storage Service
 
 S3-compatible storage service for SAP BTP Object Store.
 Handles file upload, download, and management.
+Includes local filesystem fallback for development.
 """
 
 import boto3
@@ -10,6 +11,8 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 import os
 import json
+import shutil
+import glob
 from datetime import datetime
 from typing import BinaryIO, Dict, Any, Optional, List
 import logging
@@ -33,6 +36,8 @@ class ObjectStorageService:
         self.bucket = None
         self.client = None
         self._initialized = False
+        self._use_local_storage = False
+        self._local_base = None
 
         if app:
             self.init_app(app)
@@ -64,9 +69,16 @@ class ObjectStorageService:
             secret_key = os.environ.get('S3_SECRET_KEY')
 
             if not access_key or not secret_key:
-                logger.warning("S3 credentials not configured - storage operations will be disabled")
-                logger.info("Set S3_ACCESS_KEY, S3_SECRET_KEY, S3_BUCKET, S3_ENDPOINT environment variables")
-                self._initialized = False
+                # Use local filesystem storage as fallback for development
+                logger.info("No S3 credentials - using local filesystem storage")
+                self._use_local_storage = True
+                self._local_base = os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                    'instance', 'storage'
+                )
+                os.makedirs(self._local_base, exist_ok=True)
+                self._initialized = True
+                logger.info(f"Local storage initialized at: {self._local_base}")
                 return
 
             objectstore_creds = {
@@ -106,6 +118,8 @@ class ObjectStorageService:
     @property
     def is_initialized(self) -> bool:
         """Check if storage is properly initialized."""
+        if self._use_local_storage:
+            return self._initialized and self._local_base is not None
         return self._initialized and self.client is not None
 
     def _ensure_initialized(self):
@@ -144,7 +158,7 @@ class ObjectStorageService:
 
     def upload_file(self, file_obj: BinaryIO, key: str, content_type: str = None) -> Dict[str, Any]:
         """
-        Upload a file to Object Store.
+        Upload a file to Object Store or local filesystem.
 
         Args:
             file_obj: File-like object to upload
@@ -156,6 +170,25 @@ class ObjectStorageService:
         """
         self._ensure_initialized()
 
+        # Local filesystem storage
+        if self._use_local_storage:
+            local_path = os.path.join(self._local_base, key)
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+
+            # Read content and write to file
+            content = file_obj.read()
+            with open(local_path, 'wb') as f:
+                f.write(content)
+
+            logger.info(f"Uploaded file to local storage: {key}")
+            return {
+                'key': key,
+                'size': len(content),
+                'etag': str(hash(content)),
+                'content_type': content_type
+            }
+
+        # S3 storage
         extra_args = {}
         if content_type:
             extra_args['ContentType'] = content_type
@@ -197,7 +230,7 @@ class ObjectStorageService:
 
     def download_file(self, key: str) -> bytes:
         """
-        Download a file from Object Store.
+        Download a file from Object Store or local filesystem.
 
         Args:
             key: Storage key
@@ -207,6 +240,17 @@ class ObjectStorageService:
         """
         self._ensure_initialized()
 
+        # Local filesystem storage
+        if self._use_local_storage:
+            local_path = os.path.join(self._local_base, key)
+            if not os.path.exists(local_path):
+                raise FileNotFoundError(f"File not found: {key}")
+            with open(local_path, 'rb') as f:
+                data = f.read()
+            logger.info(f"Downloaded file from local storage: {key}")
+            return data
+
+        # S3 storage
         try:
             response = self.client.get_object(Bucket=self.bucket, Key=key)
             data = response['Body'].read()
@@ -232,6 +276,16 @@ class ObjectStorageService:
         """
         self._ensure_initialized()
 
+        # Local filesystem storage
+        if self._use_local_storage:
+            src_path = os.path.join(self._local_base, key)
+            if not os.path.exists(src_path):
+                raise FileNotFoundError(f"File not found: {key}")
+            shutil.copy2(src_path, local_path)
+            logger.info(f"Copied {key} to {local_path}")
+            return local_path
+
+        # S3 storage
         try:
             self.client.download_file(self.bucket, key, local_path)
             logger.info(f"Downloaded {key} to {local_path}")
@@ -242,7 +296,7 @@ class ObjectStorageService:
 
     def get_download_url(self, key: str, expires_in: int = 3600, filename: str = None) -> str:
         """
-        Generate a pre-signed download URL.
+        Generate a pre-signed download URL or local file path.
 
         Args:
             key: Storage key
@@ -250,10 +304,17 @@ class ObjectStorageService:
             filename: Optional filename for Content-Disposition header
 
         Returns:
-            Pre-signed URL string
+            Pre-signed URL string or local API path
         """
         self._ensure_initialized()
 
+        # Local filesystem storage - return API endpoint path
+        if self._use_local_storage:
+            # Return a path that can be served by Flask
+            from urllib.parse import quote
+            return f"/api/storage/download/{quote(key, safe='')}"
+
+        # S3 storage
         params = {'Bucket': self.bucket, 'Key': key}
 
         if filename:
@@ -276,7 +337,7 @@ class ObjectStorageService:
 
     def delete_file(self, key: str) -> bool:
         """
-        Delete a file from Object Store.
+        Delete a file from Object Store or local filesystem.
 
         Args:
             key: Storage key
@@ -286,6 +347,19 @@ class ObjectStorageService:
         """
         self._ensure_initialized()
 
+        # Local filesystem storage
+        if self._use_local_storage:
+            local_path = os.path.join(self._local_base, key)
+            try:
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                    logger.info(f"Deleted local file: {key}")
+                return True
+            except Exception as e:
+                logger.error(f"Failed to delete local file {key}: {e}")
+                return False
+
+        # S3 storage
         try:
             self.client.delete_object(Bucket=self.bucket, Key=key)
             logger.info(f"Deleted file: {key}")
@@ -308,6 +382,27 @@ class ObjectStorageService:
 
         deleted_count = 0
 
+        # Local filesystem storage
+        if self._use_local_storage:
+            local_prefix_path = os.path.join(self._local_base, prefix)
+            try:
+                if os.path.exists(local_prefix_path):
+                    if os.path.isdir(local_prefix_path):
+                        for root, dirs, files in os.walk(local_prefix_path):
+                            for f in files:
+                                os.remove(os.path.join(root, f))
+                                deleted_count += 1
+                        shutil.rmtree(local_prefix_path)
+                    else:
+                        os.remove(local_prefix_path)
+                        deleted_count = 1
+                logger.info(f"Deleted {deleted_count} local files with prefix: {prefix}")
+                return deleted_count
+            except Exception as e:
+                logger.error(f"Failed to delete local files with prefix {prefix}: {e}")
+                raise
+
+        # S3 storage
         try:
             paginator = self.client.get_paginator('list_objects_v2')
 
@@ -373,6 +468,12 @@ class ObjectStorageService:
         """
         self._ensure_initialized()
 
+        # Local filesystem storage
+        if self._use_local_storage:
+            local_path = os.path.join(self._local_base, key)
+            return os.path.exists(local_path)
+
+        # S3 storage
         try:
             self.client.head_object(Bucket=self.bucket, Key=key)
             return True
@@ -393,6 +494,21 @@ class ObjectStorageService:
         """
         self._ensure_initialized()
 
+        # Local filesystem storage
+        if self._use_local_storage:
+            local_path = os.path.join(self._local_base, key)
+            if not os.path.exists(local_path):
+                return None
+            stat = os.stat(local_path)
+            return {
+                'key': key,
+                'size': stat.st_size,
+                'content_type': 'application/xml' if key.endswith('.xml') else 'application/octet-stream',
+                'last_modified': datetime.fromtimestamp(stat.st_mtime),
+                'etag': str(hash(f"{key}_{stat.st_size}_{stat.st_mtime}"))
+            }
+
+        # S3 storage
         try:
             response = self.client.head_object(Bucket=self.bucket, Key=key)
             return {
@@ -405,6 +521,38 @@ class ObjectStorageService:
         except ClientError as e:
             if e.response['Error']['Code'] == '404':
                 return None
+            raise
+
+    def get_file(self, key: str) -> bytes:
+        """
+        Get file content from storage.
+
+        Args:
+            key: Storage key
+
+        Returns:
+            File content as bytes
+
+        Raises:
+            FileNotFoundError: If file doesn't exist
+        """
+        self._ensure_initialized()
+
+        # Local filesystem storage
+        if self._use_local_storage:
+            local_path = os.path.join(self._local_base, key)
+            if not os.path.exists(local_path):
+                raise FileNotFoundError(f"File not found: {key}")
+            with open(local_path, 'rb') as f:
+                return f.read()
+
+        # S3 storage
+        try:
+            response = self.client.get_object(Bucket=self.bucket, Key=key)
+            return response['Body'].read()
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'NoSuchKey':
+                raise FileNotFoundError(f"File not found: {key}")
             raise
 
     def list_files(self, prefix: str, max_keys: int = 1000) -> List[Dict[str, Any]]:
@@ -422,6 +570,26 @@ class ObjectStorageService:
 
         files = []
 
+        # Local filesystem storage
+        if self._use_local_storage:
+            local_prefix_path = os.path.join(self._local_base, prefix)
+            if os.path.exists(local_prefix_path):
+                for root, dirs, filenames in os.walk(local_prefix_path):
+                    for filename in filenames:
+                        if len(files) >= max_keys:
+                            break
+                        full_path = os.path.join(root, filename)
+                        rel_path = os.path.relpath(full_path, self._local_base)
+                        stat = os.stat(full_path)
+                        files.append({
+                            'key': rel_path,
+                            'size': stat.st_size,
+                            'last_modified': datetime.fromtimestamp(stat.st_mtime),
+                            'etag': str(hash(f"{rel_path}_{stat.st_size}"))
+                        })
+            return files
+
+        # S3 storage
         try:
             paginator = self.client.get_paginator('list_objects_v2')
 

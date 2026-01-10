@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Store Module Index
+ * TREXIMA v2.0 - Store Module Index
  */
 
 export { useAuthStore } from './authStore';

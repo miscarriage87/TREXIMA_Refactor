@@ -1,10 +1,10 @@
 """
-TREXIMA v4.0 - Projects Blueprint
+TREXIMA v2.0 - Projects Blueprint
 
 Handles project CRUD, file uploads, SF connection, and workflow operations.
 """
 
-from flask import Blueprint, jsonify, request, g, current_app
+from flask import Blueprint, jsonify, request, g, current_app, make_response
 import logging
 from datetime import datetime
 from werkzeug.utils import secure_filename
@@ -728,6 +728,47 @@ def download_file(project_id, file_id):
     except Exception as e:
         logger.error(f"Failed to generate download URL: {e}")
         return jsonify({'error': 'Failed to generate download URL'}), 500
+
+
+@projects_bp.route('/<project_id>/download/<file_id>/file', methods=['GET'])
+@require_auth
+def download_file_direct(project_id, file_id):
+    """Download a generated file directly (streams file content)."""
+    user = get_user_from_context()
+    project, error = get_project_or_404(project_id, user)
+
+    if error:
+        return jsonify(error[0]), error[1]
+
+    gen_file = GeneratedFile.query.filter_by(
+        id=file_id,
+        project_id=project_id
+    ).first()
+
+    if not gen_file:
+        return jsonify({'error': 'File not found'}), 404
+
+    if gen_file.is_expired:
+        return jsonify({'error': 'File has expired'}), 410
+
+    try:
+        # Get file content from storage
+        content = storage_service.get_file(gen_file.storage_key)
+
+        # Update download count
+        gen_file.increment_download_count()
+        db.session.commit()
+
+        # Return file with proper headers
+        response = make_response(content)
+        response.headers['Content-Type'] = gen_file.content_type or 'application/octet-stream'
+        response.headers['Content-Disposition'] = f'attachment; filename="{gen_file.filename}"'
+        response.headers['Content-Length'] = len(content)
+        return response
+
+    except Exception as e:
+        logger.error(f"Failed to download file: {e}")
+        return jsonify({'error': 'Failed to download file'}), 500
 
 
 # =============================================================================

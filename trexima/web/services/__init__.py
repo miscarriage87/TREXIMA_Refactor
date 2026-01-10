@@ -1,5 +1,5 @@
 """
-TREXIMA v4.0 - Business Services
+TREXIMA v2.0 - Business Services
 
 This package contains service classes that handle business logic.
 """

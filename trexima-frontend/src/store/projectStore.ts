@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Project Store
+ * TREXIMA v2.0 - Project Store
  *
  * Zustand store for project state management.
  */
@@ -246,13 +246,24 @@ export const useProjectStore = create<ProjectState>((set) => ({
       set((state) => {
         // Ensure files is an array before spreading
         const currentFiles = Array.isArray(state.files) ? state.files : [];
-        logInfo('[Store] Current files array', { isArray: Array.isArray(state.files), length: currentFiles.length });
+        // Remove any existing file of the same type (backend replaces, frontend should too)
+        const filteredFiles = currentFiles.filter(f => f.file_type !== uploadedFile.file_type);
+        const wasReplacement = filteredFiles.length < currentFiles.length;
+        logInfo('[Store] Current files array', {
+          isArray: Array.isArray(state.files),
+          length: currentFiles.length,
+          wasReplacement,
+          newFileType: uploadedFile.file_type
+        });
         return {
-          files: [...currentFiles, uploadedFile],
+          files: [...filteredFiles, uploadedFile],
           currentProject: state.currentProject
             ? {
                 ...state.currentProject,
-                file_count: (state.currentProject.file_count || 0) + 1,
+                // Only increment file_count if this wasn't a replacement
+                file_count: wasReplacement
+                  ? state.currentProject.file_count
+                  : (state.currentProject.file_count || 0) + 1,
               }
             : null,
         };

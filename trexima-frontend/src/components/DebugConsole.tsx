@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Debug Console
+ * TREXIMA v2.0 - Debug Console
  *
  * Collapsible debug panel showing API calls, WebSocket events, and errors.
  * Only visible to admin users.

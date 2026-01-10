@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - TypeScript Type Definitions
+ * TREXIMA v2.0 - TypeScript Type Definitions
  */
 
 // =============================================================================
@@ -60,12 +60,18 @@ export interface BackendProject extends Omit<Project, 'files'> {
 export interface ProjectConfig {
   locales: string[];
   sf_connection?: SFConnection;
-  export_picklists: boolean;
-  export_mdf_objects: boolean;
-  export_fo_translations: boolean;
+  // Picklist exports (separated by type)
+  export_mdf_picklists: boolean;
+  export_legacy_picklists: boolean;
+  // Legacy properties (for backward compatibility)
+  export_picklists?: boolean;
+  export_mdf_objects?: boolean;
+  export_fo_translations?: boolean;
+  // Selected objects
   fo_translation_types: string[];
   ec_objects: string[];
   fo_objects: string[];
+  mdf_objects: string[];
 }
 
 export interface SFConnection {

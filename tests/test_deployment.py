@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TREXIMA v4.0 - Deployment Verification Tests
+TREXIMA v2.0 - Deployment Verification Tests
 
 Run these tests before and after deployment to ensure the application
 is working correctly.

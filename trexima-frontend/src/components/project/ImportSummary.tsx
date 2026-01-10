@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Import Summary Component
+ * TREXIMA v2.0 - Import Summary Component
  *
  * Workbook upload, validation, worksheet selection, and import execution.
  */

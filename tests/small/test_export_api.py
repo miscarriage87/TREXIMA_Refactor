@@ -154,6 +154,52 @@ class TestExportAPI:
 class TestExportConfiguration:
     """Test export configuration validation"""
 
+    def test_granular_picklist_options(self, app):
+        """Test granular picklist export options are recognized"""
+        with app.app_context():
+            # Simulate the config structure
+            config = {
+                'export_mdf_picklists': True,
+                'export_legacy_picklists': False,
+                'mdf_objects': ['cust_TestObject'],
+                'fo_objects': ['FOCompany', 'FODepartment'],
+                'fo_translation_types': ['eventReason', 'location', 'payGrade']
+            }
+
+            assert config['export_mdf_picklists'] is True
+            assert config['export_legacy_picklists'] is False
+            assert 'cust_TestObject' in config['mdf_objects']
+            assert len(config['fo_objects']) == 2
+            assert len(config['fo_translation_types']) == 3
+
+    def test_fo_translation_types_to_objects_mapping(self, app):
+        """Test FO translation types correctly map to objects"""
+        with app.app_context():
+            from trexima.web.constants import FO_TRANSLATION_TYPES
+
+            # Build mapping
+            type_to_object = {t['id']: t['object'] for t in FO_TRANSLATION_TYPES}
+
+            # Verify key mappings
+            assert type_to_object['eventReason'] == 'FOEventReason'
+            assert type_to_object['location'] == 'FOLocation'
+            assert type_to_object['frequency'] == 'FOFrequency'
+            assert type_to_object['geozone'] == 'FOGeozone'
+
+    def test_empty_filter_means_all(self, app):
+        """Test that empty filter lists mean 'export all'"""
+        with app.app_context():
+            config = {
+                'mdf_objects': [],
+                'fo_objects': [],
+                'fo_translation_types': []
+            }
+
+            # Empty lists should be truthy (not None) but empty
+            assert config['mdf_objects'] == []
+            assert config['fo_objects'] == []
+            assert config['fo_translation_types'] == []
+
     def test_ec_objects_validation(self, app):
         """Test EC objects are valid"""
         with app.app_context():

@@ -1,5 +1,5 @@
 """
-TREXIMA v4.0 - Database Models
+TREXIMA v2.0 - Database Models
 
 SQLAlchemy models for PostgreSQL database.
 Handles users, projects, files, and generated outputs.
@@ -119,7 +119,8 @@ class Project(db.Model):
             'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-            'last_accessed_at': self.last_accessed_at.isoformat() if self.last_accessed_at else None
+            'last_accessed_at': self.last_accessed_at.isoformat() if self.last_accessed_at else None,
+            'file_count': self.files.count()
         }
 
         if include_config:
@@ -219,8 +220,8 @@ class ProjectFile(db.Model):
 
         # XML files - detect type from name patterns
         if filename_lower.endswith('.xml'):
-            # Check for EC (Employee Central) prefix patterns
-            if 'ec-' in filename_lower or 'sfec' in filename_lower:
+            # Check for EC (Employee Central) / CSF (Country-Specific Fields) patterns
+            if 'ec-' in filename_lower or 'sfec' in filename_lower or 'csf' in filename_lower:
                 if 'corporate' in filename_lower or 'cdm' in filename_lower:
                     return 'ec_cdm'
                 else:
@@ -291,7 +292,7 @@ class GeneratedFile(db.Model):
             'expires_at': self.expires_at.isoformat() if self.expires_at else None,
             'downloaded_count': self.downloaded_count,
             'is_expired': self.is_expired,
-            'metadata': self.metadata
+            'metadata': self.file_metadata
         }
 
     @property

@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Projects API
+ * TREXIMA v2.0 - Projects API
  */
 
 import apiClient from './client';
@@ -165,6 +165,17 @@ export const projectsApi = {
         `/projects/${projectId}/download/${fileId}`
       );
       return response.data.download_url;
+    },
+
+    /**
+     * Download a generated file as blob (with auth)
+     */
+    downloadFile: async (projectId: string, fileId: string): Promise<Blob> => {
+      const response = await apiClient.get(
+        `/projects/${projectId}/download/${fileId}/file`,
+        { responseType: 'blob' }
+      );
+      return response.data;
     },
   },
 

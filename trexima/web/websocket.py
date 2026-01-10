@@ -1,5 +1,5 @@
 """
-TREXIMA v4.0 - WebSocket Handler
+TREXIMA v2.0 - WebSocket Handler
 
 Flask-SocketIO integration for real-time progress updates.
 Handles bidirectional communication for export/import operations.

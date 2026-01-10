@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Auth Store
+ * TREXIMA v2.0 - Auth Store
  *
  * Zustand store for authentication state management.
  */

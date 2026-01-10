@@ -59,9 +59,17 @@ class TranslationExtractor:
     def extract_to_workbook(
         self,
         locales_for_export: List[str],
-        export_picklists: bool = True,
+        # Picklists - separated by type
+        export_mdf_picklists: bool = False,
+        export_legacy_picklists: bool = False,
+        # MDF Objects
         export_mdf_objects: bool = True,
+        mdf_objects_filter: Optional[List[str]] = None,
+        # FO Translations
         export_fo_translations: bool = True,
+        fo_objects_filter: Optional[List[str]] = None,
+        fo_translation_types_filter: Optional[List[str]] = None,
+        # Other options
         picklist_from_csv: Optional[str] = None,
         remove_html_tags: bool = False,
         system_default_lang: str = "en_US"
@@ -71,9 +79,13 @@ class TranslationExtractor:
 
         Args:
             locales_for_export: List of locale codes to export
-            export_picklists: Whether to export picklists
+            export_mdf_picklists: Whether to export MDF (PickListV2) picklists
+            export_legacy_picklists: Whether to export legacy picklists
             export_mdf_objects: Whether to export MDF object definitions
+            mdf_objects_filter: List of MDF object IDs to include (empty = all)
             export_fo_translations: Whether to export foundation objects
+            fo_objects_filter: List of FO object IDs to include (empty = all)
+            fo_translation_types_filter: List of FO translation type IDs to include
             picklist_from_csv: Path to picklist CSV file
             remove_html_tags: Whether to remove HTML tags from labels
             system_default_lang: System default language
@@ -84,8 +96,11 @@ class TranslationExtractor:
         workbook = self.excel_handler.create_workbook()
         progress = 0
 
+        # Determine if any picklists should be exported
+        export_any_picklists = export_mdf_picklists or export_legacy_picklists
+
         # Collect picklist references if needed
-        if export_picklists:
+        if export_any_picklists:
             self._log_progress(5, "Collecting picklist references from data models...")
             self.picklist_ids, self.picklist_references = (
                 self.processor.find_picklist_references()
@@ -95,22 +110,33 @@ class TranslationExtractor:
         # Export MDF object definitions
         if export_mdf_objects and self.odata_client and self.odata_client.is_connected:
             self._log_progress(progress, "Extracting MDF object definitions...")
-            self._export_mdf_objects(workbook, locales_for_export, system_default_lang)
+            self._export_mdf_objects(
+                workbook, locales_for_export, system_default_lang,
+                mdf_objects_filter=mdf_objects_filter,
+                fo_objects_filter=fo_objects_filter
+            )
             progress = 20
 
         # Export picklists
-        if export_picklists:
+        if export_any_picklists:
             self._log_progress(progress, "Extracting picklists...")
             if picklist_from_csv:
                 self._export_picklists_from_csv(workbook, picklist_from_csv)
             elif self.odata_client and self.odata_client.is_connected:
-                self._export_picklists_from_api(workbook, locales_for_export, system_default_lang)
+                self._export_picklists_from_api(
+                    workbook, locales_for_export, system_default_lang,
+                    include_mdf=export_mdf_picklists,
+                    include_legacy=export_legacy_picklists
+                )
             progress = 40
 
         # Export foundation objects
         if export_fo_translations and self.odata_client and self.odata_client.is_connected:
             self._log_progress(progress, "Extracting foundation objects...")
-            self._export_foundation_objects(workbook, locales_for_export)
+            self._export_foundation_objects(
+                workbook, locales_for_export,
+                fo_translation_types_filter=fo_translation_types_filter
+            )
             progress = 50
 
         # Export data model translations
@@ -133,9 +159,20 @@ class TranslationExtractor:
         self,
         workbook: Workbook,
         locales: List[str],
-        default_lang: str
+        default_lang: str,
+        mdf_objects_filter: Optional[List[str]] = None,
+        fo_objects_filter: Optional[List[str]] = None
     ):
-        """Export MDF object definitions."""
+        """
+        Export MDF object definitions.
+
+        Args:
+            workbook: Target workbook
+            locales: List of locale codes
+            default_lang: Default language code
+            mdf_objects_filter: List of custom MDF object IDs to include (empty = all)
+            fo_objects_filter: List of FO object IDs to include (empty = all)
+        """
         if not self.odata_client or not self.odata_client.is_connected:
             return
 
@@ -144,15 +181,32 @@ class TranslationExtractor:
             workbook, "ObjectDefinitions", locales, base_headers
         )
 
-        mdf_entities = [
+        # Standard MDF entities (always included unless filtered)
+        standard_entities = [
             "Position", "PaymentInformationDetailV3", "FOCompany",
             "FOBusinessUnit", "FODivision", "FODepartment", "FOJobCode",
             "FOJobFunction", "FOCostCenter", "FOPayGroup"
         ]
 
+        # Filter FO objects if filter is provided
+        if fo_objects_filter:
+            fo_filter_set = set(fo_objects_filter)
+            mdf_entities = [
+                e for e in standard_entities
+                if not e.startswith("FO") or e in fo_filter_set
+            ]
+        else:
+            mdf_entities = standard_entities.copy()
+
         # Add custom objects
         all_entities = self.odata_client.get_all_entity_names()
         custom_objs = [e for e in all_entities if e.startswith("cust_")]
+
+        # Filter custom MDF objects if filter is provided
+        if mdf_objects_filter:
+            mdf_filter_set = set(mdf_objects_filter)
+            custom_objs = [e for e in custom_objs if e in mdf_filter_set]
+
         mdf_entities.extend(custom_objs)
 
         for object_name in mdf_entities:
@@ -203,34 +257,48 @@ class TranslationExtractor:
         self,
         workbook: Workbook,
         locales: List[str],
-        default_lang: str
+        default_lang: str,
+        include_mdf: bool = True,
+        include_legacy: bool = True
     ):
-        """Export picklists from OData API."""
+        """
+        Export picklists from OData API.
+
+        Args:
+            workbook: Target workbook
+            locales: List of locale codes
+            default_lang: Default language code
+            include_mdf: Whether to include MDF (PickListV2) picklists
+            include_legacy: Whether to include legacy picklists
+        """
         if not self.odata_client or not self.odata_client.is_connected:
             return
 
         picklist_items = []
         batch_size = 10
 
-        # Check for migrated legacy picklists
-        migrated_count = self.odata_client.get_migrated_legacy_picklist_count()
+        # Fetch legacy picklists if requested
+        if include_legacy:
+            # Check for migrated legacy picklists
+            migrated_count = self.odata_client.get_migrated_legacy_picklist_count()
 
-        if migrated_count == 0:
-            # Fetch legacy picklists
-            total_legacy = self.odata_client.get_picklist_count("legacy")
+            if migrated_count == 0:
+                # Fetch legacy picklists only if not migrated
+                total_legacy = self.odata_client.get_picklist_count("legacy")
+                offset = 0
+                while offset < total_legacy:
+                    items = self.odata_client.get_legacy_picklists(batch_size, offset)
+                    picklist_items.extend(items)
+                    offset += batch_size
+
+        # Fetch MDF picklists if requested
+        if include_mdf:
+            total_mdf = self.odata_client.get_picklist_count("mdf")
             offset = 0
-            while offset < total_legacy:
-                items = self.odata_client.get_legacy_picklists(batch_size, offset)
+            while offset < total_mdf:
+                items = self.odata_client.get_mdf_picklists(batch_size, offset)
                 picklist_items.extend(items)
                 offset += batch_size
-
-        # Fetch MDF picklists
-        total_mdf = self.odata_client.get_picklist_count("mdf")
-        offset = 0
-        while offset < total_mdf:
-            items = self.odata_client.get_mdf_picklists(batch_size, offset)
-            picklist_items.extend(items)
-            offset += batch_size
 
         # Create worksheet
         headers = ["Reference", "Picklist Id", "Option's Unique Code", "Option ID"]
@@ -345,9 +413,18 @@ class TranslationExtractor:
     def _export_foundation_objects(
         self,
         workbook: Workbook,
-        locales: List[str]
+        locales: List[str],
+        fo_translation_types_filter: Optional[List[str]] = None
     ):
-        """Export foundation object translations."""
+        """
+        Export foundation object translations.
+
+        Args:
+            workbook: Target workbook
+            locales: List of locale codes
+            fo_translation_types_filter: List of FO translation type IDs to include
+                                         (empty = all). Maps to objects via FO_TRANSLATION_TYPES.
+        """
         if not self.odata_client or not self.odata_client.is_connected:
             return
 
@@ -370,6 +447,15 @@ class TranslationExtractor:
             and not e.startswith("FOW")
             and not e.endswith("DEFLT")
         ]
+
+        # Filter FO entities based on fo_translation_types_filter
+        if fo_translation_types_filter:
+            from trexima.web.constants import FO_TRANSLATION_TYPES
+            allowed_objects = set()
+            for fo_type in FO_TRANSLATION_TYPES:
+                if fo_type['id'] in fo_translation_types_filter:
+                    allowed_objects.add(fo_type['object'])
+            fo_entities = [e for e in fo_entities if e in allowed_objects]
 
         # Add common objects
         objects_to_export = ["AlertMessage", "CustomPayType"]

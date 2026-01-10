@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Dashboard Page
+ * TREXIMA v2.0 - Dashboard Page
  *
  * Main dashboard showing user's projects.
  */

@@ -1,5 +1,5 @@
 """
-TREXIMA v4.0 - Export Blueprint
+TREXIMA v2.0 - Export Blueprint
 
 Handles translation export workflow:
 1. Validates project configuration
@@ -104,12 +104,19 @@ def start_export(project_id):
     # Merge request overrides with project config
     export_config = {
         'locales': request_data.get('locales', config.get('locales', ['en_US'])),
-        'export_picklists': request_data.get('export_picklists', config.get('export_picklists', True)),
+        # Granular picklist options (new)
+        'export_mdf_picklists': request_data.get('export_mdf_picklists', config.get('export_mdf_picklists', False)),
+        'export_legacy_picklists': request_data.get('export_legacy_picklists', config.get('export_legacy_picklists', False)),
+        # MDF objects
         'export_mdf_objects': request_data.get('export_mdf_objects', config.get('export_mdf_objects', True)),
+        'mdf_objects': request_data.get('mdf_objects', config.get('mdf_objects', [])),
+        # FO translations
         'export_fo_translations': request_data.get('export_fo_translations', config.get('export_fo_translations', True)),
         'fo_translation_types': request_data.get('fo_translation_types', config.get('fo_translation_types', [])),
-        'ec_objects': request_data.get('ec_objects', config.get('ec_objects', [])),
         'fo_objects': request_data.get('fo_objects', config.get('fo_objects', [])),
+        # EC objects (for future use)
+        'ec_objects': request_data.get('ec_objects', config.get('ec_objects', [])),
+        # Connection details
         'sf_connection': config.get('sf_connection', {})
     }
 
@@ -159,7 +166,7 @@ def _execute_export(
                 tracker.update(1, "Initializing export environment")
 
                 temp_dir = tempfile.mkdtemp(prefix='trexima_export_')
-                app_paths = AppPaths(base_dir=temp_dir)
+                app_paths = AppPaths(app_dir=temp_dir)
                 processor = DataModelProcessor(app_paths)
                 odata_client = ODataClient()
 
@@ -172,8 +179,10 @@ def _execute_export(
                         raise OperationCancelled("Export cancelled by user")
 
                     # Download file from storage
+                    file_content = storage_service.download_file(storage_key)
                     file_path = os.path.join(temp_dir, f"{file_id}.xml")
-                    storage_service.download_file(storage_key, file_path)
+                    with open(file_path, 'wb') as f:
+                        f.write(file_content)
 
                     # Load into processor
                     model = processor.load_data_model(file_path)
@@ -252,9 +261,16 @@ def _execute_export(
 
                 workbook = extractor.extract_to_workbook(
                     locales_for_export=locales,
-                    export_picklists=export_config.get('export_picklists', True),
+                    # Granular picklist options
+                    export_mdf_picklists=export_config.get('export_mdf_picklists', False) and api_connected,
+                    export_legacy_picklists=export_config.get('export_legacy_picklists', False) and api_connected,
+                    # MDF objects
                     export_mdf_objects=export_config.get('export_mdf_objects', True) and api_connected,
+                    mdf_objects_filter=export_config.get('mdf_objects', []),
+                    # FO translations
                     export_fo_translations=export_config.get('export_fo_translations', True) and api_connected,
+                    fo_objects_filter=export_config.get('fo_objects', []),
+                    fo_translation_types_filter=export_config.get('fo_translation_types', []),
                     system_default_lang='en_US'
                 )
 
@@ -269,7 +285,8 @@ def _execute_export(
 
                 # Upload to storage
                 storage_key = f"users/{user_id}/projects/{project_id}/generated/{filename}"
-                storage_service.upload_file(local_path, storage_key)
+                with open(local_path, 'rb') as f:
+                    storage_service.upload_file(f, storage_key, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
                 # Get file size
                 file_size = os.path.getsize(local_path)

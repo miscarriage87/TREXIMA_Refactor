@@ -1,5 +1,5 @@
 """
-TREXIMA v4.0 - Constants and Configuration
+TREXIMA v2.0 - Constants and Configuration
 
 Contains all static configuration data including:
 - SuccessFactors API endpoints
@@ -121,26 +121,41 @@ EC_CORE_OBJECTS = [
 ]
 
 FOUNDATION_OBJECTS = [
+    # Organizational Structure
     {"id": "FOBusinessUnit", "name": "Business Units", "translatable": True, "description": "Organizational business units"},
     {"id": "FOCompany", "name": "Companies", "translatable": True, "description": "Legal company entities"},
+    {"id": "FOCorporateAddressDeflt", "name": "Corporate Addresses", "translatable": True, "description": "Corporate address definitions"},
     {"id": "FOCostCenter", "name": "Cost Centers", "translatable": True, "description": "Cost center definitions"},
     {"id": "FODepartment", "name": "Departments", "translatable": True, "description": "Organizational departments"},
     {"id": "FODivision", "name": "Divisions", "translatable": True, "description": "Company divisions"},
-    {"id": "FOEventReason", "name": "Event Reasons", "translatable": True, "description": "HR event reasons"},
-    {"id": "FOFrequency", "name": "Frequencies", "translatable": True, "description": "Pay frequencies"},
-    {"id": "FOGeozone", "name": "Geo Zones", "translatable": True, "description": "Geographic zones"},
+    {"id": "FOLegalEntity", "name": "Legal Entities", "translatable": True, "description": "Legal entity structures"},
+    # Jobs & Positions
+    {"id": "FOEmployeeClass", "name": "Employee Classes", "translatable": True, "description": "Employee classification types"},
+    {"id": "FOJobClassification", "name": "Job Classifications", "translatable": True, "description": "Job classification categories"},
     {"id": "FOJobClassLocalDEU", "name": "Job Classes (DE)", "translatable": True, "description": "German job classifications"},
+    {"id": "FOJobClassLocalESP", "name": "Job Classes (ES)", "translatable": True, "description": "Spanish job classifications"},
     {"id": "FOJobClassLocalFRA", "name": "Job Classes (FR)", "translatable": True, "description": "French job classifications"},
+    {"id": "FOJobClassLocalGBR", "name": "Job Classes (UK)", "translatable": True, "description": "UK job classifications"},
+    {"id": "FOJobClassLocalITA", "name": "Job Classes (IT)", "translatable": True, "description": "Italian job classifications"},
+    {"id": "FOJobClassLocalUSA", "name": "Job Classes (US)", "translatable": True, "description": "US job classifications"},
     {"id": "FOJobCode", "name": "Job Codes", "translatable": True, "description": "Job code definitions"},
     {"id": "FOJobFunction", "name": "Job Functions", "translatable": True, "description": "Job function categories"},
-    {"id": "FOLegalEntity", "name": "Legal Entities", "translatable": True, "description": "Legal entity structures"},
+    {"id": "FOPosition", "name": "Positions", "translatable": False, "description": "Position definitions"},
+    # Locations
+    {"id": "FOGeozone", "name": "Geo Zones", "translatable": True, "description": "Geographic zones"},
     {"id": "FOLocation", "name": "Locations", "translatable": True, "description": "Physical locations"},
+    {"id": "FOLocationAddress", "name": "Location Addresses", "translatable": False, "description": "Physical address details for locations"},
     {"id": "FOLocationGroup", "name": "Location Groups", "translatable": True, "description": "Location group definitions"},
+    # Compensation
+    {"id": "FOEventReason", "name": "Event Reasons", "translatable": True, "description": "HR event reasons"},
+    {"id": "FOFrequency", "name": "Frequencies", "translatable": True, "description": "Pay frequencies"},
     {"id": "FOPayComponent", "name": "Pay Components", "translatable": True, "description": "Pay component definitions"},
     {"id": "FOPayComponentGroup", "name": "Pay Component Groups", "translatable": True, "description": "Pay component groupings"},
     {"id": "FOPayGrade", "name": "Pay Grades", "translatable": True, "description": "Pay grade levels"},
     {"id": "FOPayRange", "name": "Pay Ranges", "translatable": True, "description": "Pay range definitions"},
-    {"id": "FOPosition", "name": "Positions", "translatable": False, "description": "Position definitions"}
+    # Time Management
+    {"id": "Holiday", "name": "Holidays", "translatable": True, "description": "Holiday definitions"},
+    {"id": "TimeType", "name": "Time Types", "translatable": True, "description": "Time recording types"},
 ]
 
 

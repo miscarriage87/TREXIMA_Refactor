@@ -1,5 +1,5 @@
 /**
- * TREXIMA v4.0 - Progress Overlay Component
+ * TREXIMA v2.0 - Progress Overlay Component
  *
  * Real-time progress display for export/import operations.
  */
