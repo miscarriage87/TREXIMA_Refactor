@@ -118,12 +118,8 @@ export default function ExportConfig({ projectId }: ExportConfigProps) {
       const response = await projectsApi.connection.getSFObjects(projectId);
       if (response.success && response.data) {
         setSfData(response.data);
-        // If we got locales from SF and current selection is just default, use SF locales
-        if (response.data.locales.length > 0 && selectedLocales.length === 1) {
-          // Keep en_US first, add others
-          const newLocales = ['en_US', ...response.data.locales.filter((l) => l !== 'en_US')];
-          setSelectedLocales(newLocales.slice(0, 5)); // Select first 5 by default
-        }
+        // DON'T override locales - they should come from saved config
+        // SF data only provides the list of AVAILABLE locales, not the selection
       } else {
         setSfError(response.error || 'Failed to fetch SF data');
       }
@@ -233,9 +229,11 @@ export default function ExportConfig({ projectId }: ExportConfigProps) {
     }
   };
 
-  // Available locales - from SF or fallback to config
+  // Available locales - from SF data (all available), fallback to languages.available
   const availableLocales: string[] =
-    sfData?.locales || currentProject?.config?.locales || [];
+    sfData?.locales ||
+    currentProject?.config?.languages?.available?.map((l: { code: string }) => l.code) ||
+    [];
 
   // Tab configuration
   const tabs = [

@@ -5,7 +5,7 @@
  * Includes polling for progress since WebSocket is disabled.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   FileSpreadsheet,
   Download,
@@ -41,6 +41,9 @@ export default function ExportSummary({ projectId }: ExportSummaryProps) {
     progress?: number;
   }>({ active: false });
 
+  // Ref to prevent multiple auto-downloads
+  const downloadTriggeredRef = useRef(false);
+
   // Poll for operation status
   const pollStatus = useCallback(async () => {
     try {
@@ -68,7 +71,16 @@ export default function ExportSummary({ projectId }: ExportSummaryProps) {
     if (isExporting || exportProgress.active) {
       pollInterval = setInterval(async () => {
         const stillActive = await pollStatus();
-        if (!stillActive) {
+        if (!stillActive && !downloadTriggeredRef.current) {
+          // Immediately mark download as triggered to prevent duplicates
+          downloadTriggeredRef.current = true;
+
+          // Clear interval immediately
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
+
           setIsExporting(false);
           // Refresh downloads and project when export completes
           await fetchDownloads(projectId);
@@ -99,10 +111,6 @@ export default function ExportSummary({ projectId }: ExportSummaryProps) {
           } catch (err) {
             console.error('Auto-download failed:', err);
           }
-
-          if (pollInterval) {
-            clearInterval(pollInterval);
-          }
         }
       }, 2000); // Poll every 2 seconds
     }
@@ -121,6 +129,9 @@ export default function ExportSummary({ projectId }: ExportSummaryProps) {
 
   const handleStartExport = async () => {
     if (isExporting || exportProgress.active) return;
+
+    // Reset download trigger for new export
+    downloadTriggeredRef.current = false;
 
     setLocalError(null);
     setIsExporting(true);

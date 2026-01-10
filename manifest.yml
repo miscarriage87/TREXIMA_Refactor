@@ -1,23 +1,24 @@
-# TREXIMA v4.0 - SAP BTP Cloud Foundry Deployment Manifest
+# TREXIMA v2.0 - SAP BTP Cloud Foundry Deployment Manifest
 ---
 applications:
 - name: trexima-v4
-  memory: 1G
+  memory: 1536M
   disk_quota: 2G
   instances: 1
   buildpacks:
     - python_buildpack
-  command: gunicorn --bind 0.0.0.0:$PORT --worker-class eventlet --workers 1 --timeout 300 'trexima.web.app:create_app()'
-  health-check-type: http
-  health-check-http-endpoint: /api/health
-  timeout: 180
+  command: gunicorn --bind 0.0.0.0:$PORT --worker-class eventlet --workers 1 --timeout 600 'trexima.web.app:create_app()'
+  # Use 'process' health-check to avoid timeout during long exports
+  # 'http' type fails when worker is busy with export operations
+  health-check-type: process
+  timeout: 300
   env:
     FLASK_ENV: production
     PYTHONUNBUFFERED: true
     WEB_CONCURRENCY: 4
     MAX_CONTENT_LENGTH: 104857600
-    APP_NAME: TREXIMA v4.0
-    VERSION: 4.0.0
+    APP_NAME: TREXIMA v2.0
+    VERSION: 2.0.0
     SESSION_TYPE: filesystem
     PERMANENT_SESSION_LIFETIME: 3600
     CORS_ORIGINS: "*"

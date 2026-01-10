@@ -566,10 +566,19 @@ def test_connection(project_id):
         }
 
         # Store locales in both formats for frontend compatibility
-        project.config['locales'] = locales  # Array of strings for frontend
+        # Preserve user's selection if already saved, otherwise default to only en_US
+        existing_locales = project.config.get('locales', [])
+        if existing_locales and len(existing_locales) > 1:
+            # User already selected locales - preserve them
+            selected_locales = existing_locales
+        else:
+            # New connection - default to only en_US (user can add more)
+            selected_locales = ['en_US']
+
+        project.config['locales'] = selected_locales
         project.config['languages'] = {
-            'available': [{'code': loc, 'name': loc} for loc in locales],
-            'selected': ['en_US'] + [loc for loc in locales[:4] if loc != 'en_US']  # Default selection
+            'available': [{'code': loc, 'name': loc} for loc in locales],  # All SF locales
+            'selected': selected_locales  # User's selection (or default)
         }
 
         from sqlalchemy.orm.attributes import flag_modified

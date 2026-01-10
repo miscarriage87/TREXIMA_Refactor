@@ -190,6 +190,48 @@ export default function ProjectPage() {
     if (nextImportStep) setImportSection(nextImportStep.id);
   };
 
+  // Click handler for export step navigation
+  const handleExportStepClick = (step: ExportSection) => {
+    const status = getExportStepStatus(step);
+    // Allow click on completed or active steps
+    if (status === 'complete' || status === 'active') {
+      setExportSection(step);
+      return;
+    }
+    // Allow click on next step if all previous steps are complete
+    const stepOrder: ExportSection[] = ['files', 'connection', 'config', 'export'];
+    const stepIndex = stepOrder.indexOf(step);
+    const prevStepsComplete = stepOrder.slice(0, stepIndex).every(
+      (s) => getExportStepStatus(s) === 'complete'
+    );
+    if (prevStepsComplete) {
+      setExportSection(step);
+    }
+  };
+
+  // Click handler for import step navigation
+  const handleImportStepClick = (step: ImportSection) => {
+    const status = getImportStepStatus(step);
+    if (status === 'complete' || status === 'active') {
+      setImportSection(step);
+    }
+  };
+
+  // Check if a step is clickable
+  const isExportStepClickable = (step: ExportSection): boolean => {
+    const status = getExportStepStatus(step);
+    if (status === 'complete' || status === 'active') return true;
+    // Check if all previous steps are complete
+    const stepOrder: ExportSection[] = ['files', 'connection', 'config', 'export'];
+    const stepIndex = stepOrder.indexOf(step);
+    return stepOrder.slice(0, stepIndex).every((s) => getExportStepStatus(s) === 'complete');
+  };
+
+  const isImportStepClickable = (step: ImportSection): boolean => {
+    const status = getImportStepStatus(step);
+    return status === 'complete' || status === 'active';
+  };
+
   const currentSteps = workflowMode === 'export' ? exportSteps : importSteps;
   const getStepStatus = workflowMode === 'export' ? getExportStepStatus : getImportStepStatus;
 
@@ -274,18 +316,32 @@ export default function ProjectPage() {
           {currentSteps.map((step, index) => {
             const status = getStepStatus(step.id as ExportSection & ImportSection);
             const Icon = step.icon;
+            const isClickable = workflowMode === 'export'
+              ? isExportStepClickable(step.id as ExportSection)
+              : isImportStepClickable(step.id as ImportSection);
+            const handleClick = () => {
+              if (workflowMode === 'export') {
+                handleExportStepClick(step.id as ExportSection);
+              } else {
+                handleImportStepClick(step.id as ImportSection);
+              }
+            };
 
             return (
-              <div
+              <button
                 key={step.id}
-                className={`flex-shrink-0 flex items-center px-4 py-3 rounded-lg border-2 ${
+                onClick={handleClick}
+                disabled={!isClickable}
+                className={`flex-shrink-0 flex items-center px-4 py-3 rounded-lg border-2 transition-all ${
                   status === 'active'
                     ? workflowMode === 'export'
                       ? 'border-sap-blue-500 bg-sap-blue-50 text-sap-blue-700'
                       : 'border-green-500 bg-green-50 text-green-700'
                     : status === 'complete'
-                    ? 'border-green-200 bg-green-50 text-green-700'
-                    : 'border-gray-200 bg-white text-gray-500'
+                    ? 'border-green-200 bg-green-50 text-green-700 hover:border-green-400 cursor-pointer'
+                    : isClickable
+                    ? 'border-gray-200 bg-white text-gray-500 hover:border-gray-400 cursor-pointer'
+                    : 'border-gray-200 bg-white text-gray-400 cursor-not-allowed opacity-60'
                 }`}
               >
                 <div className="flex items-center">
@@ -304,7 +360,7 @@ export default function ProjectPage() {
                     <p className="text-xs opacity-75">{step.description}</p>
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </nav>

@@ -60,6 +60,11 @@ export interface BackendProject extends Omit<Project, 'files'> {
 export interface ProjectConfig {
   locales: string[];
   sf_connection?: SFConnection;
+  // Languages from SF (all available vs selected)
+  languages?: {
+    available: { code: string; name: string }[];
+    selected: string[];
+  };
   // Picklist exports (separated by type)
   export_mdf_picklists: boolean;
   export_legacy_picklists: boolean;
